@@ -1,0 +1,28 @@
+import { z } from 'zod'
+
+const zoneSchema = z.object({
+  min: z.number().min(1).max(100),
+  max: z.number().min(1).max(100)
+}).refine((value) => value.min <= value.max, 'Zone minimum must be less than or equal to maximum.')
+
+export const appSettingsSchema = z.object({
+  runningMaxHr: z.number().int().min(100).max(240),
+  cyclingMaxHr: z.number().int().min(100).max(240),
+  runningZones: z.object({
+    zone2: zoneSchema,
+    zone3: zoneSchema,
+    zone4: zoneSchema,
+    interval: zoneSchema
+  }),
+  cyclingZones: z.object({
+    zone2: zoneSchema,
+    zone3: zoneSchema,
+    zone4: zoneSchema,
+    interval: zoneSchema
+  })
+})
+
+export const settingsSchema = appSettingsSchema.extend({
+  stravaClientId: z.string().trim().min(1, 'Strava app client ID is required.').max(100),
+  stravaClientSecret: z.string().trim().max(200).optional().or(z.literal(''))
+})

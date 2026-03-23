@@ -1,0 +1,244 @@
+:root {
+  color-scheme: light;
+  --bg: #f4efe6;
+  --surface: rgba(255, 252, 247, 0.88);
+  --surface-strong: #fffdf9;
+  --surface-muted: #efe7da;
+  --border: rgba(64, 45, 22, 0.12);
+  --text: #2d2419;
+  --text-muted: #6d614f;
+  --brand: #166534;
+  --brand-strong: #114c28;
+  --brand-soft: rgba(22, 101, 52, 0.12);
+  --accent: #c97c2a;
+  --danger: #a63c33;
+  --shadow: 0 24px 70px rgba(53, 38, 18, 0.12);
+  --radius: 22px;
+  --radius-sm: 14px;
+  --font-display: "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(201, 124, 42, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(22, 101, 52, 0.18), transparent 32%),
+    linear-gradient(180deg, #f9f4ec 0%, var(--bg) 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.shell {
+  min-height: 100vh;
+}
+
+.page-shell {
+  width: min(1200px, calc(100vw - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.page-grid,
+.dashboard-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.dashboard-grid {
+  grid-template-columns: repeat(12, 1fr);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.section-card {
+  padding: 1.25rem;
+}
+
+.section-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 1.5vw, 1.55rem);
+}
+
+.section-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0.8rem 1.1rem;
+  font-weight: 600;
+  transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--brand);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+
+.stat-block {
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  margin-top: 0.25rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.grid-span-4 {
+  grid-column: span 4;
+}
+
+.grid-span-6 {
+  grid-column: span 6;
+}
+
+.grid-span-8 {
+  grid-column: span 8;
+}
+
+.grid-span-12 {
+  grid-column: span 12;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input {
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+@media (max-width: 960px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .grid-span-4,
+  .grid-span-6,
+  .grid-span-8,
+  .grid-span-12 {
+    grid-column: span 1;
+  }
+
+  .page-shell {
+    width: min(100vw - 1rem, 100%);
+  }
+}

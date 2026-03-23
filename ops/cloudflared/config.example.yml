@@ -1,0 +1,7 @@
+tunnel: training-planner
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: sports.example.com
+    service: http://app:3000
+  - service: http_status:404

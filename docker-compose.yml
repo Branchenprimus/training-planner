@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: training-planner-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      NUXT_SQLITE_PATH: /data/training-planner.sqlite
+      NITRO_HOST: 0.0.0.0
+      NITRO_PORT: 3000
+    volumes:
+      - training_planner_data:/data
+
+volumes:
+  training_planner_data:
