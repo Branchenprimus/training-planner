@@ -28,7 +28,7 @@ const props = defineProps<{
     yAxisID?: string
   }>
   primaryMetric: Exclude<ChartMetric, 'heartRate'>
-  secondaryMetric?: Extract<ChartMetric, 'heartRate'>
+  secondaryMetric?: ChartMetric
 }>()
 
 const chartData = computed(() => ({

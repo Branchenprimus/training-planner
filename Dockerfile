@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM node:20-bookworm-slim AS base
 WORKDIR /app
 ENV NUXT_TELEMETRY_DISABLED=1
@@ -7,11 +8,13 @@ RUN apt-get update \
 
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci --prefer-offline --no-audit
 
 FROM base AS prod-deps
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci --omit=dev --prefer-offline --no-audit
 
 FROM deps AS build
 COPY . .

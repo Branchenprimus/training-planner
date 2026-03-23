@@ -1,6 +1,13 @@
 import type { SportType } from './types'
 
-export type ChartMetric = 'runningPace' | 'cyclingSpeed' | 'swimmingPace' | 'heartRate'
+export type ChartMetric =
+  | 'runningPace'
+  | 'cyclingSpeed'
+  | 'swimmingPace'
+  | 'heartRate'
+  | 'distanceKm'
+  | 'durationMinutes'
+  | 'elevationMeters'
 
 function formatPaceValue(totalSeconds: number, suffix: '/km' | '/100m'): string {
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
@@ -116,6 +123,18 @@ export function chartMetricAxisLabel(metric: ChartMetric): string {
     return 'Speed (km/h)'
   }
 
+  if (metric === 'distanceKm') {
+    return 'Distance (km)'
+  }
+
+  if (metric === 'durationMinutes') {
+    return 'Duration (min)'
+  }
+
+  if (metric === 'elevationMeters') {
+    return 'Elevation Gain (m)'
+  }
+
   if (metric === 'swimmingPace') {
     return 'Pace (min/100m)'
   }
@@ -130,6 +149,18 @@ export function chartMetricAxisLabel(metric: ChartMetric): string {
 export function formatChartMetricValue(metric: ChartMetric, value: number): string {
   if (metric === 'cyclingSpeed') {
     return `${value.toFixed(1)} km/h`
+  }
+
+  if (metric === 'distanceKm') {
+    return `${value.toFixed(value >= 10 ? 1 : 2)} km`
+  }
+
+  if (metric === 'durationMinutes') {
+    return `${Math.round(value)} min`
+  }
+
+  if (metric === 'elevationMeters') {
+    return `${Math.round(value)} m`
   }
 
   if (metric === 'swimmingPace') {

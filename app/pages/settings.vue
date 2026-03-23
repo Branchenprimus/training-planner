@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { AppSettings, SettingsResponse } from '~/shared/types'
+import type { SettingsResponse, SettingsUpdateRequest } from '~/shared/types'
 
 const { data, pending, refresh } = await useFetch<SettingsResponse>('/api/settings')
 const saving = ref(false)
 const error = ref<string | null>(null)
 
-async function saveSettings(nextValue: AppSettings) {
+async function saveSettings(nextValue: SettingsUpdateRequest) {
   saving.value = true
   error.value = null
 
@@ -28,6 +28,7 @@ async function saveSettings(nextValue: AppSettings) {
   <SettingsForm
     v-else-if="data"
     :value="data.settings"
+    :strava-app="data.stravaApp"
     :sync-interval-minutes="data.syncIntervalMinutes"
     :connection-status="data.connectionStatus"
     :saving="saving"

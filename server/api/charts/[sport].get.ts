@@ -35,6 +35,27 @@ export default defineEventHandler((event): ChartSeriesResponse => {
         value: performanceValueForChart(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps) ?? 0,
         secondaryValue: activity.averageHeartRate,
         label: activity.name
+      })),
+    distance: activities
+      .filter((activity: ActivityListItem) => activity.distanceMeters > 0)
+      .map((activity: ActivityListItem) => ({
+        date: activity.startDate,
+        value: Number((activity.distanceMeters / 1000).toFixed(2)),
+        label: activity.name
+      })),
+    duration: activities
+      .filter((activity: ActivityListItem) => activity.durationSeconds > 0)
+      .map((activity: ActivityListItem) => ({
+        date: activity.startDate,
+        value: Number((activity.durationSeconds / 60).toFixed(1)),
+        label: activity.name
+      })),
+    elevation: activities
+      .filter((activity: ActivityListItem) => typeof activity.elevationGainMeters === 'number' && activity.elevationGainMeters > 0)
+      .map((activity: ActivityListItem) => ({
+        date: activity.startDate,
+        value: Number((activity.elevationGainMeters ?? 0).toFixed(0)),
+        label: activity.name
       }))
   }
 })

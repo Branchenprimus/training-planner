@@ -13,6 +13,18 @@ interface StoredStravaCredentials {
   clientSecret: string
 }
 
+function normalizeText(value: unknown): string {
+  if (typeof value === 'string') {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return String(value).trim()
+  }
+
+  return ''
+}
+
 function getStoredJson<T>(db: Database.Database, key: string): T | null {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
   if (!row) {
@@ -43,8 +55,8 @@ export function saveSettings(db: Database.Database, settings: AppSettings): AppS
 
 export function getEffectiveStravaCredentials(db: Database.Database, runtimeConfig: RuntimeStravaConfig): StoredStravaCredentials | null {
   const stored = getStoredJson<StoredStravaCredentials>(db, 'strava_app_credentials')
-  const clientId = (stored?.clientId ?? runtimeConfig.stravaClientId).trim()
-  const clientSecret = (stored?.clientSecret ?? runtimeConfig.stravaClientSecret).trim()
+  const clientId = normalizeText(stored?.clientId ?? runtimeConfig.stravaClientId)
+  const clientSecret = normalizeText(stored?.clientSecret ?? runtimeConfig.stravaClientSecret)
 
   if (!clientId || !clientSecret) {
     return null
@@ -58,20 +70,22 @@ export function getEffectiveStravaCredentials(db: Database.Database, runtimeConf
 
 export function getStravaAppSettings(db: Database.Database, runtimeConfig: RuntimeStravaConfig): StravaAppSettings {
   const credentials = getEffectiveStravaCredentials(db, runtimeConfig)
-  const clientId = credentials?.clientId ?? runtimeConfig.stravaClientId.trim()
+  const runtimeClientId = normalizeText(runtimeConfig.stravaClientId)
+  const runtimeClientSecret = normalizeText(runtimeConfig.stravaClientSecret)
+  const clientId = credentials?.clientId ?? runtimeClientId
 
   let callbackDomain = ''
   try {
-    callbackDomain = new URL(runtimeConfig.stravaRedirectUri).host
+    callbackDomain = new URL(normalizeText(runtimeConfig.stravaRedirectUri)).host
   } catch {
     callbackDomain = ''
   }
 
   return {
     clientId,
-    hasClientSecret: Boolean(credentials?.clientSecret || runtimeConfig.stravaClientSecret.trim()),
-    hasConfiguredCredentials: Boolean(credentials?.clientId || runtimeConfig.stravaClientId.trim()) && Boolean(credentials?.clientSecret || runtimeConfig.stravaClientSecret.trim()),
-    redirectUri: runtimeConfig.stravaRedirectUri,
+    hasClientSecret: Boolean(credentials?.clientSecret || runtimeClientSecret),
+    hasConfiguredCredentials: Boolean(credentials?.clientId || runtimeClientId) && Boolean(credentials?.clientSecret || runtimeClientSecret),
+    redirectUri: normalizeText(runtimeConfig.stravaRedirectUri),
     callbackDomain
   }
 }
@@ -82,8 +96,8 @@ export function saveStravaCredentials(
   runtimeConfig: RuntimeStravaConfig
 ): StoredStravaCredentials {
   const current = getEffectiveStravaCredentials(db, runtimeConfig)
-  const clientId = input.clientId.trim() || current?.clientId || runtimeConfig.stravaClientId.trim()
-  const clientSecret = input.clientSecret?.trim() || current?.clientSecret || runtimeConfig.stravaClientSecret.trim()
+  const clientId = normalizeText(input.clientId) || current?.clientId || normalizeText(runtimeConfig.stravaClientId)
+  const clientSecret = normalizeText(input.clientSecret) || current?.clientSecret || normalizeText(runtimeConfig.stravaClientSecret)
 
   if (!clientId || !clientSecret) {
     throw new Error('Strava app client ID and client secret must both be configured.')

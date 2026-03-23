@@ -140,6 +140,9 @@ export interface ChartSeriesResponse {
   range: '7d' | '30d' | '90d' | 'all'
   zone2: ChartPoint[]
   hrPerformance: ChartPoint[]
+  distance: ChartPoint[]
+  duration: ChartPoint[]
+  elevation: ChartPoint[]
 }
 
 export interface ConnectionStatusResponse {

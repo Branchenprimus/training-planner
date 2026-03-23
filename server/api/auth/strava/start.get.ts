@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import { createError, setCookie, sendRedirect } from 'h3'
 import { useRuntimeConfig } from '#imports'
-import { initializeDatabase } from '../../database/bootstrap'
-import { getEffectiveStravaCredentials } from '../../repositories/settingsRepository'
+import { initializeDatabase } from '../../../database/bootstrap'
+import { getEffectiveStravaCredentials } from '../../../repositories/settingsRepository'
 
 export default defineEventHandler((event) => {
   const config = useRuntimeConfig()

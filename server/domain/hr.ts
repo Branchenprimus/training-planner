@@ -58,9 +58,12 @@ export function classifyHrZone(settings: AppSettings, sport: SportType, averageH
 
   const matched = entries.find((entry) => hrPercent >= entry.min && hrPercent <= entry.max)
   if (!matched) {
+    const belowZone2 = hrPercent < zones.zone2.min
+    const aboveInterval = hrPercent > zones.interval.max
+
     return {
       hrPercentOfMax: hrPercent,
-      hrZoneLabel: 'Unclassified',
+      hrZoneLabel: belowZone2 ? 'Below Zone 2' : aboveInterval ? 'Above Interval' : 'Unclassified',
       classification: 'unclassified'
     }
   }
