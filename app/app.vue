@@ -10,6 +10,7 @@ const { data: connectionStatus } = await useFetch<ConnectionStatusResponse>('/ap
 
 const isConnected = computed(() => Boolean(connectionStatus.value?.syncStatus.connected))
 const shouldShowStravaBanner = computed(() => !isConnected.value)
+const shouldShowStravaBannerButton = computed(() => !route.path.startsWith('/settings'))
 const canShowPageContent = computed(() =>
   isConnected.value || route.path === '/settings' || route.path === '/strava-setup' || route.path === '/auth/callback'
 )
@@ -30,7 +31,7 @@ watchEffect(() => {
           <p class="connect-banner-title">{{ t('banner.stravaTitle') }}</p>
           <p class="connect-banner-copy">{{ t('banner.stravaCopy') }}</p>
         </div>
-        <NuxtLink to="/settings" class="btn connect-banner-button">
+        <NuxtLink v-if="shouldShowStravaBannerButton" to="/settings" class="btn connect-banner-button">
           {{ t('banner.stravaButton') }}
         </NuxtLink>
       </div>

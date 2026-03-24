@@ -1,6 +1,7 @@
 import { createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { initializeDatabase } from '../../database/bootstrap'
+import { isDevelopmentMockStravaUser, seedMockStravaDataForDevelopment } from '../../database/devSeed'
 import { getActivityCount, getLatestActivityDate, upsertActivity, upsertActivityAnalysis } from '../../repositories/activityRepository'
 import { deleteToken, getAthlete, getToken, listConnectedUserEmails, upsertAthlete, upsertToken } from '../../repositories/athleteRepository'
 import { getSettings } from '../../repositories/settingsRepository'
@@ -218,6 +219,18 @@ function buildAfterTimestamp(userEmail: string): number | undefined {
 }
 
 export async function runStravaSync(reason = 'manual', userEmail: string): Promise<SyncStatus> {
+  if (isDevelopmentMockStravaUser(userEmail)) {
+    const db = initializeDatabase()
+    seedMockStravaDataForDevelopment(db, userEmail)
+    return updateSyncStatus(db, userEmail, {
+      connected: true,
+      isSyncing: false,
+      lastSyncAt: new Date().toISOString(),
+      lastSyncStatus: 'success',
+      lastSyncMessage: `Mock sync completed (${reason}).`
+    })
+  }
+
   const existingPromise = syncPromises.get(userEmail)
   if (existingPromise) {
     return await existingPromise

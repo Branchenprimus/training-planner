@@ -4,6 +4,7 @@ import { runMigrations } from './migrate'
 import { getSettings } from '../repositories/settingsRepository'
 import { reanalyzeActivities } from '../services/analysis/reanalysisService'
 import { LEGACY_USER_EMAIL } from '../utils/currentUser'
+import { seedMockStravaDataForDevelopment } from './devSeed'
 
 let initialized = false
 
@@ -13,6 +14,7 @@ export function initializeDatabase() {
 
   if (!initialized) {
     runMigrations(db)
+    seedMockStravaDataForDevelopment(db, String(config.defaultUserEmail || ''))
 
     const missingRelativeEffortWithStreams = db.prepare(`
       SELECT COUNT(*) AS count
