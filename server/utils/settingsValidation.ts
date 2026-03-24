@@ -10,10 +10,15 @@ export const appSettingsSchema = z.object({
   dashboardChartIds: z.array(z.enum([
     'running-zone2',
     'cycling-zone2',
+    'multisport-weekly-distance',
     'running-hr',
     'cycling-hr',
     'running-relative-effort',
-    'cycling-relative-effort'
+    'cycling-relative-effort',
+    'running-zone-distribution',
+    'cycling-zone-distribution',
+    'running-session-classification',
+    'cycling-session-classification'
   ])).min(1),
   syncIntervalMinutes: z.number().int().min(5).max(1440),
   runningMaxHr: z.number().int().min(100).max(240),

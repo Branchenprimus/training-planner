@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ChartSeriesResponse, DashboardSummary, DashboardChartId, SettingsResponse, SettingsUpdateRequest } from '~/shared/types'
+import type { ChartSeriesResponse, DashboardSummary, DashboardChartId, MultisportWeeklyDistanceResponse, SettingsResponse, SettingsUpdateRequest } from '~/shared/types'
 import { DEFAULT_DASHBOARD_CHART_IDS } from '~/shared/constants'
 import { useDateRange } from '../composables/useDateRange'
 
@@ -8,11 +8,12 @@ type DashboardChartDefinition = {
   title: string
   subtitle: string
   infoText: string
-  primaryMetric: 'runningPace' | 'cyclingSpeed' | 'relativeEffort'
-  secondaryMetric?: 'heartRate'
+  primaryMetric: 'runningPace' | 'cyclingSpeed' | 'relativeEffort' | 'durationMinutes' | 'sessionCount' | 'distanceKm'
+  secondaryMetric?: 'heartRate' | 'durationMinutes'
   invertPrimaryAxis?: boolean
+  variant?: 'line' | 'bar'
   labels: string[]
-  pointTitles: string[]
+  pointTitles?: string[]
   datasets: Array<{
     label: string
     data: number[]
@@ -21,7 +22,7 @@ type DashboardChartDefinition = {
     yAxisID?: string
   }>
   previewLabels: string[]
-  previewPointTitles: string[]
+  previewPointTitles?: string[]
   previewDatasets: Array<{
     label: string
     data: number[]
@@ -41,6 +42,7 @@ const { data, pending } = await useFetch<DashboardSummary>(() => `/api/dashboard
 const settingsState = await useFetch<SettingsResponse>('/api/settings')
 const runningCharts = await useFetch<ChartSeriesResponse>(() => `/api/charts/running?range=${selectedRange.value}`, { watch: [selectedRange] })
 const cyclingCharts = await useFetch<ChartSeriesResponse>(() => `/api/charts/cycling?range=${selectedRange.value}`, { watch: [selectedRange] })
+const multisportWeeklyCharts = await useFetch<MultisportWeeklyDistanceResponse>(() => `/api/charts/multisport-weekly?range=${selectedRange.value}`, { watch: [selectedRange] })
 
 const defaultChartIds: DashboardChartId[] = [...DEFAULT_DASHBOARD_CHART_IDS]
 const selectedChartIds = ref<DashboardChartId[]>([...defaultChartIds])
@@ -75,24 +77,39 @@ function buildPointTitles(points: ChartSeriesResponse['zone2']) {
   return points.map((point) => point.label)
 }
 
+function buildSeriesLabels(points: { label: string }[]) {
+  return points.map((point) => point.label)
+}
+
 const runningZone2 = computed(() => runningCharts.data.value?.zone2 ?? [])
 const cyclingZone2 = computed(() => cyclingCharts.data.value?.zone2 ?? [])
 const runningHr = computed(() => runningCharts.data.value?.hrPerformance ?? [])
 const cyclingHr = computed(() => cyclingCharts.data.value?.hrPerformance ?? [])
 const runningRelativeEffort = computed(() => runningCharts.data.value?.relativeEffort ?? [])
 const cyclingRelativeEffort = computed(() => cyclingCharts.data.value?.relativeEffort ?? [])
+const runningZoneDistribution = computed(() => runningCharts.data.value?.zoneDistribution ?? { zone2: [], zone3: [], zone4: [], interval: [] })
+const cyclingZoneDistribution = computed(() => cyclingCharts.data.value?.zoneDistribution ?? { zone2: [], zone3: [], zone4: [], interval: [] })
+const runningSessionClassification = computed(() => runningCharts.data.value?.sessionClassification ?? { zone2: [], zone3: [], zone4: [], interval: [] })
+const cyclingSessionClassification = computed(() => cyclingCharts.data.value?.sessionClassification ?? { zone2: [], zone3: [], zone4: [], interval: [] })
+const multisportWeeklyRunning = computed(() => multisportWeeklyCharts.data.value?.running ?? [])
+const multisportWeeklyCycling = computed(() => multisportWeeklyCharts.data.value?.cycling ?? [])
+const multisportWeeklySwimming = computed(() => multisportWeeklyCharts.data.value?.swimming ?? [])
+const multisportWeeklyLabels = computed(() => multisportWeeklyCharts.data.value?.labels ?? [])
+const multisportWeeklyPointTitles = computed(() => multisportWeeklyCharts.data.value?.pointTitles ?? [])
 
 const previewLabels = ['Mar 2', 'Mar 9', 'Mar 16', 'Mar 23']
 const previewPointTitles = {
   runningZone2: ['Easy Run Riverside', 'Aerobic Run Park', 'Steady Run Trail', 'Zone 2 Endurance'],
   cyclingZone2: ['Endurance Ride North Loop', 'Steady Ride Canal', 'Coffee Spin South', 'Aerobic Ride Hills'],
+  multisportWeekly: ['Week of Mar 3', 'Week of Mar 10', 'Week of Mar 17', 'Week of Mar 24'],
   runningHr: ['Tempo Check', 'Cruise Run', 'Progression Run', 'Controlled Workout'],
   cyclingHr: ['Tempo Ride', 'Rolling Route', 'Threshold Build', 'Fast Group Ride'],
   runningRelativeEffort: ['Easy Run', 'Long Run', 'Hill Session', 'Tempo Run'],
-  cyclingRelativeEffort: ['Recovery Ride', 'Endurance Ride', 'Climbing Ride', 'Hard Group Ride']
+  cyclingRelativeEffort: ['Recovery Ride', 'Endurance Ride', 'Climbing Ride', 'Hard Group Ride'],
+  buckets: ['Week of Mar 3', 'Week of Mar 10', 'Week of Mar 17', 'Week of Mar 24']
 }
 
-const chartDefinitions = computed<DashboardChartDefinition[]>(() => [
+const chartDefinitions = computed(() => [
   {
     id: 'running-zone2',
     title: t('runningZone2Progress'),
@@ -144,6 +161,57 @@ const chartDefinitions = computed<DashboardChartDefinition[]>(() => [
         data: [24.8, 25.5, 26.1, 26.4],
         borderColor: '#166534',
         backgroundColor: 'rgba(22,101,52,0.2)'
+      }
+    ]
+  },
+  {
+    id: 'multisport-weekly-distance',
+    title: t('multisportWeeklyDistance'),
+    subtitle: t('multisportWeeklyDistanceSubtitle'),
+    infoText: t('multisportWeeklyDistanceInfo'),
+    primaryMetric: 'distanceKm',
+    labels: multisportWeeklyLabels.value,
+    pointTitles: multisportWeeklyPointTitles.value,
+    datasets: [
+      {
+        label: t('running'),
+        data: multisportWeeklyRunning.value.map((point) => point.value),
+        borderColor: '#166534',
+        backgroundColor: 'rgba(22,101,52,0.18)'
+      },
+      {
+        label: t('cycling'),
+        data: multisportWeeklyCycling.value.map((point) => point.value),
+        borderColor: '#c97c2a',
+        backgroundColor: 'rgba(201,124,42,0.18)'
+      },
+      {
+        label: t('swimming'),
+        data: multisportWeeklySwimming.value.map((point) => point.value),
+        borderColor: '#2f6fb3',
+        backgroundColor: 'rgba(47,111,179,0.18)'
+      }
+    ],
+    previewLabels,
+    previewPointTitles: previewPointTitles.multisportWeekly,
+    previewDatasets: [
+      {
+        label: t('running'),
+        data: [18, 26, 31, 24],
+        borderColor: '#166534',
+        backgroundColor: 'rgba(22,101,52,0.18)'
+      },
+      {
+        label: t('cycling'),
+        data: [62, 84, 96, 78],
+        borderColor: '#c97c2a',
+        backgroundColor: 'rgba(201,124,42,0.18)'
+      },
+      {
+        label: t('swimming'),
+        data: [2.4, 3.1, 2.7, 3.4],
+        borderColor: '#2f6fb3',
+        backgroundColor: 'rgba(47,111,179,0.18)'
       }
     ]
   },
@@ -285,8 +353,98 @@ const chartDefinitions = computed<DashboardChartDefinition[]>(() => [
         backgroundColor: 'rgba(166,60,51,0.18)'
       }
     ]
-  }
-])
+  },
+  {
+    id: 'running-zone-distribution',
+    title: t('runningZoneDistribution'),
+    subtitle: t('runningZoneDistributionSubtitle'),
+    infoText: t('runningZoneDistributionInfo'),
+    primaryMetric: 'durationMinutes',
+    labels: buildSeriesLabels(runningZoneDistribution.value.zone2),
+    datasets: [
+      { label: t('zone2'), data: runningZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
+      { label: t('zone3'), data: runningZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
+      { label: t('zone4'), data: runningZoneDistribution.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
+      { label: t('intervalLabel'), data: runningZoneDistribution.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+    ],
+    previewLabels,
+    previewPointTitles: previewPointTitles.buckets,
+    previewDatasets: [
+      { label: t('zone2'), data: [84, 96, 102, 88], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
+      { label: t('zone3'), data: [18, 22, 28, 20], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
+      { label: t('zone4'), data: [8, 0, 14, 10], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
+      { label: t('intervalLabel'), data: [0, 12, 8, 0], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+    ]
+  },
+  {
+    id: 'cycling-zone-distribution',
+    title: t('cyclingZoneDistribution'),
+    subtitle: t('cyclingZoneDistributionSubtitle'),
+    infoText: t('cyclingZoneDistributionInfo'),
+    primaryMetric: 'durationMinutes',
+    labels: buildSeriesLabels(cyclingZoneDistribution.value.zone2),
+    datasets: [
+      { label: t('zone2'), data: cyclingZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
+      { label: t('zone3'), data: cyclingZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
+      { label: t('zone4'), data: cyclingZoneDistribution.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
+      { label: t('intervalLabel'), data: cyclingZoneDistribution.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+    ],
+    previewLabels,
+    previewPointTitles: previewPointTitles.buckets,
+    previewDatasets: [
+      { label: t('zone2'), data: [110, 124, 138, 132], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
+      { label: t('zone3'), data: [24, 36, 28, 22], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
+      { label: t('zone4'), data: [0, 18, 20, 14], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
+      { label: t('intervalLabel'), data: [0, 10, 16, 8], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+    ]
+  },
+  {
+    id: 'running-session-classification',
+    title: t('runningSessionsByClassification'),
+    subtitle: t('runningSessionsByClassificationSubtitle'),
+    infoText: t('runningSessionsByClassificationInfo'),
+    primaryMetric: 'sessionCount',
+    variant: 'bar',
+    labels: buildSeriesLabels(runningSessionClassification.value.zone2),
+    datasets: [
+      { label: t('zone2'), data: runningSessionClassification.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
+      { label: t('zone3'), data: runningSessionClassification.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
+      { label: t('zone4'), data: runningSessionClassification.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)' },
+      { label: t('intervalLabel'), data: runningSessionClassification.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)' }
+    ],
+    previewLabels,
+    previewPointTitles: previewPointTitles.buckets,
+    previewDatasets: [
+      { label: t('zone2'), data: [2, 3, 2, 2], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
+      { label: t('zone3'), data: [1, 0, 1, 1], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
+      { label: t('zone4'), data: [0, 1, 1, 0], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)' },
+      { label: t('intervalLabel'), data: [0, 1, 1, 0], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)' }
+    ]
+  },
+  {
+    id: 'cycling-session-classification',
+    title: t('cyclingSessionsByClassification'),
+    subtitle: t('cyclingSessionsByClassificationSubtitle'),
+    infoText: t('cyclingSessionsByClassificationInfo'),
+    primaryMetric: 'sessionCount',
+    variant: 'bar',
+    labels: buildSeriesLabels(cyclingSessionClassification.value.zone2),
+    datasets: [
+      { label: t('zone2'), data: cyclingSessionClassification.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
+      { label: t('zone3'), data: cyclingSessionClassification.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
+      { label: t('zone4'), data: cyclingSessionClassification.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)' },
+      { label: t('intervalLabel'), data: cyclingSessionClassification.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)' }
+    ],
+    previewLabels,
+    previewPointTitles: previewPointTitles.buckets,
+    previewDatasets: [
+      { label: t('zone2'), data: [2, 2, 3, 2], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
+      { label: t('zone3'), data: [1, 1, 0, 1], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
+      { label: t('zone4'), data: [0, 0, 1, 0], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)' },
+      { label: t('intervalLabel'), data: [0, 1, 1, 1], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)' }
+    ]
+  },
+] satisfies DashboardChartDefinition[])
 
 const visibleCharts = computed(() => chartDefinitions.value.filter((chart) => selectedChartIds.value.includes(chart.id)))
 
@@ -317,6 +475,14 @@ function toggleDraftChart(chartId: DashboardChartId) {
   }
 
   draftChartIds.value = [...draftChartIds.value, chartId]
+}
+
+function addAllDraftCharts() {
+  draftChartIds.value = chartDefinitions.value.map((chart) => chart.id)
+}
+
+function removeAllDraftCharts() {
+  draftChartIds.value = []
 }
 
 async function applyChartSelection() {
@@ -365,7 +531,7 @@ function isDraftSelected(chartId: DashboardChartId) {
       <CounterCard :counter="data!.counters[1]" />
     </div>
 
-    <div class="grid-span-12 section-card card stack">
+    <div class="grid-span-12 section-card card stack charts-section-header">
       <div class="inline-actions">
         <div>
           <h2 class="section-title">{{ t('charts') }}</h2>
@@ -394,6 +560,7 @@ function isDraftSelected(chartId: DashboardChartId) {
         :title="chart.title"
         :subtitle="chart.subtitle"
         :info-text="chart.infoText"
+        :variant="chart.variant"
         :primary-metric="chart.primaryMetric"
         :secondary-metric="chart.secondaryMetric"
         :invert-primary-axis="chart.invertPrimaryAxis"
@@ -434,6 +601,7 @@ function isDraftSelected(chartId: DashboardChartId) {
             <ChartCard
               :title="chart.title"
               :subtitle="chart.subtitle"
+              :variant="chart.variant"
               :primary-metric="chart.primaryMetric"
               :secondary-metric="chart.secondaryMetric"
               :invert-primary-axis="chart.invertPrimaryAxis"
@@ -445,6 +613,12 @@ function isDraftSelected(chartId: DashboardChartId) {
         </div>
 
         <div class="inline-actions chart-editor-actions">
+          <button class="btn btn-secondary" type="button" @click="addAllDraftCharts">
+            Add all
+          </button>
+          <button class="btn btn-secondary" type="button" @click="removeAllDraftCharts">
+            Remove all
+          </button>
           <button class="btn btn-secondary" type="button" @click="toggleChartEditor">
             Cancel
           </button>
@@ -479,6 +653,17 @@ function isDraftSelected(chartId: DashboardChartId) {
 </template>
 
 <style scoped>
+.charts-section-header {
+  position: sticky;
+  top: 1rem;
+  z-index: 14;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(255, 249, 242, 0.94));
+  box-shadow:
+    0 20px 44px rgba(53, 38, 18, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
 .chart-editor-trigger {
   width: 100%;
   min-height: 4.25rem;
@@ -547,6 +732,10 @@ function isDraftSelected(chartId: DashboardChartId) {
 }
 
 @media (max-width: 960px) {
+  .charts-section-header {
+    top: 0.85rem;
+  }
+
   .chart-editor-grid {
     grid-template-columns: 1fr;
   }

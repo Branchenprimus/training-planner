@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  BarElement,
   CategoryScale,
   Chart as ChartJS,
   type Chart,
@@ -12,13 +13,13 @@ import {
   type TooltipItem,
   Tooltip
 } from 'chart.js'
-import { Line } from 'vue-chartjs'
+import { Bar, Line } from 'vue-chartjs'
 import { chartMetricAxisLabel, formatChartMetricValue, type ChartMetric } from '~/shared/format'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend)
 const { t } = useI18n()
 const rootRef = ref<HTMLElement | null>(null)
-const lineRef = shallowRef<{ chart?: Chart<'line'> | null } | null>(null)
+const lineRef = shallowRef<{ chart?: Chart<'line' | 'bar'> | null } | null>(null)
 const infoOpen = ref(false)
 const MOBILE_TOOLTIP_LINE_LIMIT = 26
 
@@ -38,15 +39,21 @@ const props = defineProps<{
   primaryMetric: Exclude<ChartMetric, 'heartRate'>
   secondaryMetric?: ChartMetric
   invertPrimaryAxis?: boolean
+  variant?: 'line' | 'bar'
 }>()
 
+const chartVariant = computed(() => props.variant ?? 'line')
 const chartData = computed(() => ({
   labels: props.labels,
   datasets: props.datasets.map((dataset) => ({
     ...dataset,
-    tension: 0.25,
+    tension: chartVariant.value === 'line' ? 0.25 : 0,
     fill: false,
-    pointRadius: 3
+    pointRadius: chartVariant.value === 'line' ? 3 : 0,
+    borderWidth: chartVariant.value === 'bar' ? 1 : 2,
+    borderRadius: chartVariant.value === 'bar' ? 8 : 0,
+    barPercentage: chartVariant.value === 'bar' ? 0.72 : undefined,
+    categoryPercentage: chartVariant.value === 'bar' ? 0.72 : undefined
   }))
 }))
 
@@ -81,7 +88,7 @@ function wrapTooltipText(value: string, maxLineLength = MOBILE_TOOLTIP_LINE_LIMI
   return lines
 }
 
-const chartOptions = computed<ChartOptions<'line'>>(() => ({
+const baseChartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: {
@@ -94,7 +101,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     },
     tooltip: {
       callbacks: {
-        title: (items: TooltipItem<'line'>[]) => {
+        title: (items: TooltipItem<'line' | 'bar'>[]) => {
           const firstItem = items[0]
           if (!firstItem) {
             return ''
@@ -104,7 +111,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
           const dateLabel = props.labels[firstItem.dataIndex] ?? ''
           return pointTitle ? [...wrapTooltipText(pointTitle), dateLabel] : dateLabel
         },
-        label: (context: TooltipItem<'line'>) => {
+        label: (context: TooltipItem<'line' | 'bar'>) => {
           const metric = context.dataset.yAxisID === 'y1' && props.secondaryMetric ? props.secondaryMetric : props.primaryMetric
           const prefix = context.dataset.label ? `${context.dataset.label}: ` : ''
           const value = typeof context.parsed.y === 'number' ? context.parsed.y : 0
@@ -115,7 +122,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
   },
   scales: {
     y: {
-      beginAtZero: false,
+      beginAtZero: chartVariant.value === 'bar',
       reverse: Boolean(props.invertPrimaryAxis),
       title: {
         display: true,
@@ -146,6 +153,9 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     }
   }
 }))
+
+const lineChartOptions = computed(() => baseChartOptions.value as ChartOptions<'line'>)
+const barChartOptions = computed(() => baseChartOptions.value as ChartOptions<'bar'>)
 
 function hideChartTooltip() {
   const chart = lineRef.value?.chart
@@ -200,7 +210,8 @@ onBeforeUnmount(() => {
     </div>
     <p class="section-subtitle">{{ subtitle }}</p>
     <div class="chart-frame">
-      <Line ref="lineRef" :data="chartData" :options="chartOptions" />
+      <Bar v-if="chartVariant === 'bar'" ref="lineRef" :data="chartData" :options="barChartOptions" />
+      <Line v-else ref="lineRef" :data="chartData" :options="lineChartOptions" />
     </div>
   </section>
 </template>

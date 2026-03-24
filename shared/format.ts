@@ -8,6 +8,7 @@ export type ChartMetric =
   | 'relativeEffort'
   | 'distanceKm'
   | 'durationMinutes'
+  | 'sessionCount'
   | 'elevationMeters'
 
 function formatPaceValue(totalSeconds: number, suffix: '/km' | '/100m'): string {
@@ -144,6 +145,10 @@ export function chartMetricAxisLabel(metric: ChartMetric): string {
     return 'Duration (min)'
   }
 
+  if (metric === 'sessionCount') {
+    return 'Sessions'
+  }
+
   if (metric === 'elevationMeters') {
     return 'Elevation Gain (m)'
   }
@@ -174,6 +179,10 @@ export function formatChartMetricValue(metric: ChartMetric, value: number): stri
 
   if (metric === 'durationMinutes') {
     return `${Math.round(value)} min`
+  }
+
+  if (metric === 'sessionCount') {
+    return `${Math.round(value)}`
   }
 
   if (metric === 'elevationMeters') {

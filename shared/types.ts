@@ -3,10 +3,15 @@ export type AppLanguage = 'en' | 'de'
 export type DashboardChartId =
   | 'running-zone2'
   | 'cycling-zone2'
+  | 'multisport-weekly-distance'
   | 'running-hr'
   | 'cycling-hr'
   | 'running-relative-effort'
   | 'cycling-relative-effort'
+  | 'running-zone-distribution'
+  | 'cycling-zone-distribution'
+  | 'running-session-classification'
+  | 'cycling-session-classification'
 
 export type ActivityClassification = 'zone2' | 'zone3' | 'zone4' | 'interval' | 'unclassified'
 
@@ -176,6 +181,30 @@ export interface ChartSeriesResponse {
   distance: ChartPoint[]
   duration: ChartPoint[]
   elevation: ChartPoint[]
+  volumeDistance: ChartPoint[]
+  volumeDuration: ChartPoint[]
+  longestSession: ChartPoint[]
+  zoneDistribution: {
+    zone2: ChartPoint[]
+    zone3: ChartPoint[]
+    zone4: ChartPoint[]
+    interval: ChartPoint[]
+  }
+  sessionClassification: {
+    zone2: ChartPoint[]
+    zone3: ChartPoint[]
+    zone4: ChartPoint[]
+    interval: ChartPoint[]
+  }
+}
+
+export interface MultisportWeeklyDistanceResponse {
+  range: '7d' | '30d' | '90d' | 'all'
+  labels: string[]
+  pointTitles: string[]
+  running: ChartPoint[]
+  cycling: ChartPoint[]
+  swimming: ChartPoint[]
 }
 
 export interface ConnectionStatusResponse {

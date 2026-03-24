@@ -19,6 +19,20 @@ interface LegacyAppSettings extends Partial<AppSettings> {
   intervalSessionsInBlock?: number
 }
 
+const VALID_DASHBOARD_CHART_IDS: AppSettings['dashboardChartIds'] = [
+  'running-zone2',
+  'cycling-zone2',
+  'multisport-weekly-distance',
+  'running-hr',
+  'cycling-hr',
+  'running-relative-effort',
+  'cycling-relative-effort',
+  'running-zone-distribution',
+  'cycling-zone-distribution',
+  'running-session-classification',
+  'cycling-session-classification'
+]
+
 function normalizeText(value: unknown): string {
   if (typeof value === 'string') {
     return value.trim()
@@ -57,12 +71,15 @@ function normalizeSettings(value: LegacyAppSettings | null | undefined): AppSett
   const legacyInterval = typeof value?.intervalSessionsInBlock === 'number'
     ? value.intervalSessionsInBlock
     : DEFAULT_SETTINGS.runningIntervalSessionsInBlock
+  const normalizedChartIds = Array.isArray(value?.dashboardChartIds)
+    ? value.dashboardChartIds.filter((chartId): chartId is AppSettings['dashboardChartIds'][number] => VALID_DASHBOARD_CHART_IDS.includes(chartId as AppSettings['dashboardChartIds'][number]))
+    : []
 
   return {
     ...DEFAULT_SETTINGS,
     ...rest,
-    dashboardChartIds: Array.isArray(value?.dashboardChartIds) && value.dashboardChartIds.length
-      ? value.dashboardChartIds
+    dashboardChartIds: normalizedChartIds.length
+      ? normalizedChartIds
       : [...DEFAULT_SETTINGS.dashboardChartIds],
     runningZone2SessionsBeforeInterval: value?.runningZone2SessionsBeforeInterval ?? legacyZone2,
     runningIntervalSessionsInBlock: value?.runningIntervalSessionsInBlock ?? legacyInterval,

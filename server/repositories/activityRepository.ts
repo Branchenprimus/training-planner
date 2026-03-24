@@ -223,6 +223,40 @@ export function getChartActivities(db: Database.Database, userEmail: string, spo
   return (rows as Record<string, unknown>[]).map(mapActivityRow)
 }
 
+export function getMultisportChartActivities(
+  db: Database.Database,
+  userEmail: string,
+  sports: SportType[],
+  startDate?: string
+): ActivityListItem[] {
+  if (!sports.length) {
+    return []
+  }
+
+  const placeholders = sports.map(() => '?').join(', ')
+  const baseQuery = `
+    SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+    FROM activities a
+    JOIN athletes athlete ON athlete.id = a.athlete_id
+    JOIN activity_analysis aa ON aa.activity_id = a.id
+    WHERE athlete.user_email = ?
+      AND a.sport IN (${placeholders})
+  `
+
+  const rows = startDate
+    ? db.prepare(`
+        ${baseQuery}
+          AND a.start_date >= ?
+        ORDER BY a.start_date ASC
+      `).all(userEmail, ...sports, startDate)
+    : db.prepare(`
+        ${baseQuery}
+        ORDER BY a.start_date ASC
+      `).all(userEmail, ...sports)
+
+  return (rows as Record<string, unknown>[]).map(mapActivityRow)
+}
+
 export function getLatestActivityDate(db: Database.Database, userEmail: string): string | null {
   const row = db.prepare(`
     SELECT activity.start_date
