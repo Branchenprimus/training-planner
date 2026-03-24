@@ -22,6 +22,7 @@ export interface StravaActivity {
   type: string
   sport_type: string
   name: string
+  description?: string | null
   start_date: string
   timezone: string | null
   elapsed_time: number

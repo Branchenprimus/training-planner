@@ -44,6 +44,7 @@ const zoneBreakdownChart = computed(() => {
       <div>
         <p class="activity-sport">{{ translateSport(activity.sport) }}</p>
         <h3>{{ activity.name }}</h3>
+        <p v-if="activity.description" class="activity-description">{{ activity.description }}</p>
         <p class="muted">{{ formatLocalizedDate(activity.startDate, locale) }}</p>
       </div>
       <a :href="activity.stravaUrl" target="_blank" rel="noreferrer" class="btn btn-secondary">
@@ -150,6 +151,12 @@ const zoneBreakdownChart = computed(() => {
 
 h3 {
   margin: 0 0 0.25rem;
+}
+
+.activity-description {
+  margin: 0 0 0.45rem;
+  color: var(--text-muted);
+  line-height: 1.45;
 }
 
 .metrics {

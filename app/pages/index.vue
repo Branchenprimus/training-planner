@@ -16,6 +16,10 @@ function buildDateLabels(points: ChartSeriesResponse['zone2']) {
   return points.map((point) => new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric' }).format(new Date(point.date)))
 }
 
+function buildPointTitles(points: ChartSeriesResponse['zone2']) {
+  return points.map((point) => point.label)
+}
+
 const runningZone2 = computed(() => runningCharts.data.value?.zone2 ?? [])
 const cyclingZone2 = computed(() => cyclingCharts.data.value?.zone2 ?? [])
 const runningHr = computed(() => runningCharts.data.value?.hrPerformance ?? [])
@@ -71,6 +75,7 @@ function loadMoreRecent() {
         :info-text="t('runningZone2Info')"
         primary-metric="runningPace"
         :labels="buildDateLabels(runningZone2)"
+        :point-titles="buildPointTitles(runningZone2)"
         :datasets="[
           {
             label: t('zone2'),
@@ -89,6 +94,7 @@ function loadMoreRecent() {
         :info-text="t('cyclingZone2Info')"
         primary-metric="cyclingSpeed"
         :labels="buildDateLabels(cyclingZone2)"
+        :point-titles="buildPointTitles(cyclingZone2)"
         :datasets="[
           {
             label: t('zone2'),
@@ -109,6 +115,7 @@ function loadMoreRecent() {
         :invert-primary-axis="true"
         secondary-metric="heartRate"
         :labels="buildDateLabels(runningHr)"
+        :point-titles="buildPointTitles(runningHr)"
         :datasets="[
           {
             label: t('paceLabel'),
@@ -134,6 +141,7 @@ function loadMoreRecent() {
         :info-text="t('runningRelativeEffortInfo')"
         primary-metric="relativeEffort"
         :labels="buildDateLabels(runningRelativeEffort)"
+        :point-titles="buildPointTitles(runningRelativeEffort)"
         :datasets="[
           {
             label: t('intensityLabel'),
@@ -153,6 +161,7 @@ function loadMoreRecent() {
         primary-metric="cyclingSpeed"
         secondary-metric="heartRate"
         :labels="buildDateLabels(cyclingHr)"
+        :point-titles="buildPointTitles(cyclingHr)"
         :datasets="[
           {
             label: t('speedLabel'),
@@ -178,6 +187,7 @@ function loadMoreRecent() {
         :info-text="t('cyclingRelativeEffortInfo')"
         primary-metric="relativeEffort"
         :labels="buildDateLabels(cyclingRelativeEffort)"
+        :point-titles="buildPointTitles(cyclingRelativeEffort)"
         :datasets="[
           {
             label: t('intensityLabel'),

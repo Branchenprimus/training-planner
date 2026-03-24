@@ -13,6 +13,10 @@ function buildDateLabels(points: ChartSeriesResponse['zone2']) {
   return points.map((point) => new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric' }).format(new Date(point.date)))
 }
 
+function buildPointTitles(points: ChartSeriesResponse['zone2']) {
+  return points.map((point) => point.label)
+}
+
 const runningZone2 = computed(() => charts.data.value?.zone2 ?? [])
 const runningHr = computed(() => charts.data.value?.hrPerformance ?? [])
 const runningRelativeEffort = computed(() => charts.data.value?.relativeEffort ?? [])
@@ -57,6 +61,7 @@ function loadMore() {
           :info-text="t('runningZone2Info')"
           primary-metric="runningPace"
           :labels="buildDateLabels(runningZone2)"
+          :point-titles="buildPointTitles(runningZone2)"
           :datasets="[
             {
               label: t('zone2'),
@@ -77,6 +82,7 @@ function loadMore() {
           :invert-primary-axis="true"
           secondary-metric="heartRate"
           :labels="buildDateLabels(runningHr)"
+          :point-titles="buildPointTitles(runningHr)"
           :datasets="[
             {
               label: t('paceLabel'),
@@ -102,6 +108,7 @@ function loadMore() {
           :info-text="t('runningRelativeEffortInfo')"
           primary-metric="relativeEffort"
           :labels="buildDateLabels(runningRelativeEffort)"
+          :point-titles="buildPointTitles(runningRelativeEffort)"
           :datasets="[
             {
               label: t('intensityLabel'),
@@ -121,6 +128,7 @@ function loadMore() {
           primary-metric="distanceKm"
           secondary-metric="durationMinutes"
           :labels="buildDateLabels(runningDistance)"
+          :point-titles="buildPointTitles(runningDistance)"
           :datasets="[
             {
               label: t('distanceLabel'),
@@ -146,6 +154,7 @@ function loadMore() {
           :info-text="t('runningElevationGainInfo')"
           primary-metric="elevationMeters"
           :labels="buildDateLabels(runningElevation)"
+          :point-titles="buildPointTitles(runningElevation)"
           :datasets="[
             {
               label: t('elevationLabel'),

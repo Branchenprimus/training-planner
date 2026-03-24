@@ -61,6 +61,7 @@ export interface ActivityRecord {
   sourceType: string
   sport: SportType
   name: string
+  description?: string | null
   startDate: string
   timezone: string | null
   durationSeconds: number
@@ -105,6 +106,7 @@ export interface ActivityListItem {
   sport: SportType
   sourceType: string
   name: string
+  description?: string | null
   startDate: string
   durationSeconds: number
   movingTimeSeconds: number | null

@@ -2,6 +2,7 @@
 import {
   CategoryScale,
   Chart as ChartJS,
+  type Chart,
   type ChartOptions,
   Legend,
   LineElement,
@@ -16,12 +17,17 @@ import { chartMetricAxisLabel, formatChartMetricValue, type ChartMetric } from '
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 const { t } = useI18n()
+const rootRef = ref<HTMLElement | null>(null)
+const lineRef = shallowRef<{ chart?: Chart<'line'> | null } | null>(null)
+const infoOpen = ref(false)
+const MOBILE_TOOLTIP_LINE_LIMIT = 26
 
 const props = defineProps<{
   title: string
   subtitle: string
   infoText?: string
   labels: string[]
+  pointTitles?: string[]
   datasets: Array<{
     label: string
     data: number[]
@@ -44,6 +50,37 @@ const chartData = computed(() => ({
   }))
 }))
 
+function wrapTooltipText(value: string, maxLineLength = MOBILE_TOOLTIP_LINE_LIMIT): string[] {
+  const text = value.trim()
+  if (!text) {
+    return []
+  }
+
+  const words = text.split(/\s+/)
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word
+    if (nextLine.length <= maxLineLength) {
+      currentLine = nextLine
+      continue
+    }
+
+    if (currentLine) {
+      lines.push(currentLine)
+    }
+
+    currentLine = word
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
 const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -57,6 +94,16 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     },
     tooltip: {
       callbacks: {
+        title: (items: TooltipItem<'line'>[]) => {
+          const firstItem = items[0]
+          if (!firstItem) {
+            return ''
+          }
+
+          const pointTitle = props.pointTitles?.[firstItem.dataIndex]
+          const dateLabel = props.labels[firstItem.dataIndex] ?? ''
+          return pointTitle ? [...wrapTooltipText(pointTitle), dateLabel] : dateLabel
+        },
         label: (context: TooltipItem<'line'>) => {
           const metric = context.dataset.yAxisID === 'y1' && props.secondaryMetric ? props.secondaryMetric : props.primaryMetric
           const prefix = context.dataset.label ? `${context.dataset.label}: ` : ''
@@ -99,22 +146,61 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     }
   }
 }))
+
+function hideChartTooltip() {
+  const chart = lineRef.value?.chart
+  if (!chart) {
+    return
+  }
+
+  chart.setActiveElements([])
+  chart.tooltip?.setActiveElements([], { x: 0, y: 0 })
+  chart.update('none')
+}
+
+function toggleInfo() {
+  infoOpen.value = !infoOpen.value
+}
+
+function dismissInteractiveOverlays(event: PointerEvent) {
+  if (rootRef.value?.contains(event.target as Node)) {
+    return
+  }
+
+  infoOpen.value = false
+  hideChartTooltip()
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', dismissInteractiveOverlays)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', dismissInteractiveOverlays)
+})
 </script>
 
 <template>
-  <section class="section-card card chart-card">
+  <section ref="rootRef" class="section-card card chart-card">
     <div class="chart-header">
       <h3 class="section-title">{{ title }}</h3>
-      <div v-if="infoText" class="info-trigger" tabindex="0" :aria-label="t('chart.howCalculated', { title })">
+      <button
+        v-if="infoText"
+        class="info-trigger"
+        type="button"
+        :aria-label="t('chart.howCalculated', { title })"
+        :aria-expanded="infoOpen"
+        @click="toggleInfo"
+      >
         <span class="info-icon">i</span>
-        <div class="info-popover">
+        <div class="info-popover" :class="{ 'info-popover-open': infoOpen }">
           {{ infoText }}
         </div>
-      </div>
+      </button>
     </div>
     <p class="section-subtitle">{{ subtitle }}</p>
     <div class="chart-frame">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line ref="lineRef" :data="chartData" :options="chartOptions" />
     </div>
   </section>
 </template>
@@ -147,6 +233,8 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
   font-weight: 700;
   cursor: help;
   outline: none;
+  border: 0;
+  padding: 0;
 }
 
 .info-popover {
@@ -154,7 +242,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
   top: calc(100% + 0.55rem);
   right: 0;
   z-index: 10;
-  width: min(20rem, 80vw);
+  width: min(20rem, calc(100vw - 1.5rem));
   padding: 0.8rem 0.9rem;
   border-radius: 0.9rem;
   background: #fffaf0;
@@ -171,7 +259,8 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
 
 .info-trigger:hover .info-popover,
 .info-trigger:focus .info-popover,
-.info-trigger:focus-within .info-popover {
+.info-trigger:focus-within .info-popover,
+.info-popover-open {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -200,6 +289,20 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
   .section-subtitle {
     min-height: 4.8rem;
     -webkit-line-clamp: 3;
+  }
+
+  .info-popover {
+    left: 50%;
+    right: auto;
+    width: min(18rem, calc(100vw - 1rem));
+    transform: translate(-50%, -4px);
+  }
+
+  .info-trigger:hover .info-popover,
+  .info-trigger:focus .info-popover,
+  .info-trigger:focus-within .info-popover,
+  .info-popover-open {
+    transform: translate(-50%, 0);
   }
 }
 </style>

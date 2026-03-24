@@ -13,6 +13,10 @@ function buildDateLabels(points: ChartSeriesResponse['zone2']) {
   return points.map((point) => new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric' }).format(new Date(point.date)))
 }
 
+function buildPointTitles(points: ChartSeriesResponse['zone2']) {
+  return points.map((point) => point.label)
+}
+
 const cyclingZone2 = computed(() => charts.data.value?.zone2 ?? [])
 const cyclingHr = computed(() => charts.data.value?.hrPerformance ?? [])
 const cyclingRelativeEffort = computed(() => charts.data.value?.relativeEffort ?? [])
@@ -54,6 +58,7 @@ function loadMore() {
           :info-text="t('cyclingZone2Info')"
           primary-metric="cyclingSpeed"
           :labels="buildDateLabels(cyclingZone2)"
+          :point-titles="buildPointTitles(cyclingZone2)"
           :datasets="[
             {
               label: t('zone2'),
@@ -73,6 +78,7 @@ function loadMore() {
           primary-metric="cyclingSpeed"
           secondary-metric="heartRate"
           :labels="buildDateLabels(cyclingHr)"
+          :point-titles="buildPointTitles(cyclingHr)"
           :datasets="[
             {
               label: t('speedLabel'),
@@ -98,6 +104,7 @@ function loadMore() {
           :info-text="t('cyclingRelativeEffortInfo')"
           primary-metric="relativeEffort"
           :labels="buildDateLabels(cyclingRelativeEffort)"
+          :point-titles="buildPointTitles(cyclingRelativeEffort)"
           :datasets="[
             {
               label: t('intensityLabel'),

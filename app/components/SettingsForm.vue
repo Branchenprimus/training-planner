@@ -177,9 +177,6 @@ onBeforeUnmount(() => {
 })
 
 const canStartStravaConnection = computed(() => props.stravaApp.hasConfiguredCredentials)
-const clientSecretPlaceholder = computed(() =>
-  props.stravaApp.hasClientSecret ? t('settings.clientSecretPlaceholderKeep') : t('settings.clientSecretPlaceholderPaste')
-)
 
 const syncStatus = computed(() => props.connectionStatus.syncStatus)
 const ratioLockLabel = computed(() => t(ratiosLocked.value ? 'settings.ratioUnlock' : 'settings.ratioLock'))
@@ -423,20 +420,6 @@ function toggleRatioLock() {
         </div>
 
         <div class="helper-card stack">
-          <div>
-            <p class="helper-title">{{ t('settings.stravaHintTitle') }}</p>
-            <p class="muted">{{ t('settings.stravaHintText') }}</p>
-          </div>
-          <div class="stack helper-list">
-            <p class="muted"><strong>{{ t('settings.callbackDomain') }}</strong> <code class="inline-code">{{ stravaApp.callbackDomain || t('settings.callbackDomainFallback') }}</code></p>
-            <p class="muted"><strong>{{ t('settings.redirectUri') }}</strong> <code class="inline-code">{{ stravaApp.redirectUri }}</code></p>
-          </div>
-          <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-            {{ t('settings.openStravaSettings') }}
-          </a>
-        </div>
-
-        <div class="helper-card stack">
           <div class="section-heading">
             <div>
               <p class="helper-title">{{ t('settings.manualPullTitle') }}</p>
@@ -447,7 +430,7 @@ function toggleRatioLock() {
             </span>
           </div>
 
-          <div class="stat-grid">
+          <div class="manual-pull-grid">
             <div class="stat-block">
               <div class="stat-label">{{ t('settings.lastDataPull') }}</div>
               <div class="stat-value">
@@ -466,32 +449,17 @@ function toggleRatioLock() {
 
           <p class="muted">{{ syncStatus.lastSyncMessage ?? t('settings.waitingForFirstSync') }}</p>
 
-          <div class="inline-actions">
-            <button
-              class="btn btn-primary"
-              type="button"
-              :disabled="syncStatus.isSyncing || !syncStatus.connected"
-              @click="emit('sync')"
-            >
-              {{ syncStatus.isSyncing ? t('settings.syncingNow') : t('settings.manualPullButton') }}
-            </button>
-          </div>
         </div>
 
-        <div class="form-grid">
-          <div class="field">
-            <label for="stravaClientId">{{ t('settings.clientId') }}</label>
-            <input id="stravaClientId" v-model.trim="form.stravaClientId" type="text" inputmode="numeric" autocomplete="off" :placeholder="t('settings.clientIdPlaceholder')">
-            <p class="field-help">{{ t('settings.clientIdHelp') }}</p>
-          </div>
-          <div class="field">
-            <label for="stravaClientSecret">{{ t('settings.clientSecret') }}</label>
-            <input id="stravaClientSecret" v-model.trim="form.stravaClientSecret" type="password" autocomplete="new-password" :placeholder="clientSecretPlaceholder">
-            <p class="field-help">{{ t('settings.clientSecretHelp') }}</p>
-          </div>
-        </div>
-
-        <div class="inline-actions">
+        <div class="inline-actions strava-actions-row">
+          <button
+            class="btn btn-primary"
+            type="button"
+            :disabled="syncStatus.isSyncing || !syncStatus.connected"
+            @click="emit('sync')"
+          >
+            {{ syncStatus.isSyncing ? t('settings.syncingNow') : t('settings.manualPullButton') }}
+          </button>
           <button class="btn btn-secondary btn-danger-soft" type="button" @click="emit('resetStrava')">
             {{ t('settings.resetStrava') }}
           </button>
@@ -608,6 +576,22 @@ function toggleRatioLock() {
   color: var(--brand-strong);
 }
 
+.manual-pull-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: stretch;
+}
+
+.manual-pull-grid > .stat-block {
+  min-width: 0;
+}
+
+.strava-actions-row {
+  justify-content: space-between;
+  align-items: center;
+}
+
 .settings-footer-actions {
   display: flex;
   flex-wrap: wrap;
@@ -647,6 +631,21 @@ function toggleRatioLock() {
 
   .ratio-lock-button {
     justify-self: center;
+  }
+
+}
+
+@media (max-width: 640px) {
+  .manual-pull-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .strava-actions-row {
+    justify-content: stretch;
+  }
+
+  .strava-actions-row .btn {
+    width: 100%;
   }
 }
 </style>
