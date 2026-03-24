@@ -44,7 +44,7 @@ function loadMoreRecent() {
       <CounterCard :counter="data!.counters[1]" />
     </div>
 
-    <div class="grid-span-12 section-card card stack charts-sticky-bar">
+    <div class="grid-span-12 section-card card stack">
       <div class="inline-actions">
         <div>
           <h2 class="section-title">{{ t('charts') }}</h2>
@@ -211,23 +211,3 @@ function loadMoreRecent() {
     </div>
   </div>
 </template>
-
-<style scoped>
-.charts-sticky-bar {
-  position: sticky;
-  top: 6.4rem;
-  z-index: 15;
-}
-
-@media (max-width: 960px) {
-  .charts-sticky-bar {
-    top: 7.6rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .charts-sticky-bar {
-    top: 5.25rem;
-  }
-}
-</style>

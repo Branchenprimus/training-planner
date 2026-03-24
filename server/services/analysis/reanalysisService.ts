@@ -50,7 +50,9 @@ export function reanalyzeActivities(db: Database.Database, userEmail: string, se
         relativeEffort: computeRelativeEffort(
           settings,
           activity.sport,
-          getStoredRelativeEffortStreams(activity.raw_payload)
+          getStoredRelativeEffortStreams(activity.raw_payload),
+          activity.average_heart_rate,
+          activity.duration_seconds
         ),
         hrZoneLabel: hr.hrZoneLabel,
         classification: hr.classification,

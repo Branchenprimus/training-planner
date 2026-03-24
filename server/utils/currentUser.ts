@@ -44,6 +44,74 @@ function hasAthlete(db: Database.Database, userEmail: string): boolean {
   return Boolean(row)
 }
 
+function hasLegacySharedSetting(db: Database.Database, key: string): boolean {
+  const row = db.prepare('SELECT 1 FROM settings WHERE key = ? LIMIT 1').get(key)
+  return Boolean(row)
+}
+
+function normalizeAppSettingsValue(value: Record<string, unknown> | null | undefined) {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...value,
+    runningZones: {
+      ...DEFAULT_SETTINGS.runningZones,
+      ...(value?.runningZones as Record<string, unknown> | undefined),
+      zone2: { ...DEFAULT_SETTINGS.runningZones.zone2, ...((value?.runningZones as Record<string, unknown> | undefined)?.zone2 as Record<string, unknown> | undefined) },
+      zone3: { ...DEFAULT_SETTINGS.runningZones.zone3, ...((value?.runningZones as Record<string, unknown> | undefined)?.zone3 as Record<string, unknown> | undefined) },
+      zone4: { ...DEFAULT_SETTINGS.runningZones.zone4, ...((value?.runningZones as Record<string, unknown> | undefined)?.zone4 as Record<string, unknown> | undefined) },
+      interval: { ...DEFAULT_SETTINGS.runningZones.interval, ...((value?.runningZones as Record<string, unknown> | undefined)?.interval as Record<string, unknown> | undefined) }
+    },
+    cyclingZones: {
+      ...DEFAULT_SETTINGS.cyclingZones,
+      ...(value?.cyclingZones as Record<string, unknown> | undefined),
+      zone2: { ...DEFAULT_SETTINGS.cyclingZones.zone2, ...((value?.cyclingZones as Record<string, unknown> | undefined)?.zone2 as Record<string, unknown> | undefined) },
+      zone3: { ...DEFAULT_SETTINGS.cyclingZones.zone3, ...((value?.cyclingZones as Record<string, unknown> | undefined)?.zone3 as Record<string, unknown> | undefined) },
+      zone4: { ...DEFAULT_SETTINGS.cyclingZones.zone4, ...((value?.cyclingZones as Record<string, unknown> | undefined)?.zone4 as Record<string, unknown> | undefined) },
+      interval: { ...DEFAULT_SETTINGS.cyclingZones.interval, ...((value?.cyclingZones as Record<string, unknown> | undefined)?.interval as Record<string, unknown> | undefined) }
+    }
+  }
+}
+
+function hasInheritedUserSettingClone(db: Database.Database, userEmail: string, key: 'app_settings' | 'strava_app_credentials'): boolean {
+  const current = db.prepare(`
+    SELECT value
+    FROM user_settings
+    WHERE user_email = ?
+      AND key = ?
+    LIMIT 1
+  `).get(userEmail, key) as { value: string } | undefined
+
+  if (!current) {
+    return false
+  }
+
+  const otherRows = db.prepare(`
+    SELECT other.value
+    FROM user_settings other
+    JOIN athletes athlete ON athlete.user_email = other.user_email
+    WHERE other.key = ?
+      AND other.user_email <> ?
+  `).all(key, userEmail) as Array<{ value: string }>
+
+  if (key === 'strava_app_credentials') {
+    return otherRows.some((row) => row.value === current.value)
+  }
+
+  const currentNormalized = JSON.stringify(normalizeAppSettingsValue(JSON.parse(current.value) as Record<string, unknown>))
+  return otherRows.some((row) => currentNormalized === JSON.stringify(normalizeAppSettingsValue(JSON.parse(row.value) as Record<string, unknown>)))
+}
+
+function hasNamedUserSetting(db: Database.Database, key: string): boolean {
+  const row = db.prepare(`
+    SELECT 1
+    FROM user_settings
+    WHERE key = ?
+      AND user_email <> ?
+    LIMIT 1
+  `).get(key, LEGACY_USER_EMAIL)
+  return Boolean(row)
+}
+
 function seedUserSettings(db: Database.Database, userEmail: string): void {
   const now = new Date().toISOString()
   db.prepare(`
@@ -62,6 +130,45 @@ function seedUserSyncState(db: Database.Database, userEmail: string): void {
     VALUES (?, 0, 0, 'idle', 0, ?, ?)
     ON CONFLICT(user_email) DO NOTHING
   `).run(userEmail, now, now)
+}
+
+function adoptLegacySharedSetting(db: Database.Database, userEmail: string, key: 'app_settings' | 'strava_app_credentials'): void {
+  db.prepare(`
+    INSERT INTO user_settings (user_email, key, value, updated_at)
+    SELECT ?, key, value, ?
+    FROM settings
+    WHERE key = ?
+    ON CONFLICT(user_email, key) DO NOTHING
+  `).run(userEmail, new Date().toISOString(), key)
+}
+
+function resetInheritedUserState(db: Database.Database, userEmail: string): void {
+  const now = new Date().toISOString()
+
+  if (hasInheritedUserSettingClone(db, userEmail, 'app_settings')) {
+    db.prepare(`
+      INSERT INTO user_settings (user_email, key, value, updated_at)
+      VALUES (?, 'app_settings', ?, ?)
+      ON CONFLICT(user_email, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    `).run(userEmail, JSON.stringify(DEFAULT_SETTINGS), now)
+  }
+
+  if (hasInheritedUserSettingClone(db, userEmail, 'strava_app_credentials')) {
+    db.prepare('DELETE FROM user_settings WHERE user_email = ? AND key = ?').run(userEmail, 'strava_app_credentials')
+  }
+
+  db.prepare(`
+    UPDATE user_sync_state
+    SET connected = 0,
+        is_syncing = 0,
+        last_sync_at = NULL,
+        last_sync_status = 'idle',
+        last_sync_message = NULL,
+        imported_activities = 0,
+        updated_at = ?
+    WHERE user_email = ?
+      AND connected <> 0
+  `).run(now, userEmail)
 }
 
 export function ensureUserScope(db: Database.Database, userEmail: string): void {
@@ -99,6 +206,14 @@ export function ensureUserScope(db: Database.Database, userEmail: string): void 
             WHERE existing.user_email = ?
           )
       `).run(normalizedEmail, LEGACY_USER_EMAIL, normalizedEmail)
+
+      if (!hasNamedUserSetting(db, 'app_settings') && hasLegacySharedSetting(db, 'app_settings')) {
+        adoptLegacySharedSetting(db, normalizedEmail, 'app_settings')
+      }
+
+      if (!hasNamedUserSetting(db, 'strava_app_credentials') && hasLegacySharedSetting(db, 'strava_app_credentials')) {
+        adoptLegacySharedSetting(db, normalizedEmail, 'strava_app_credentials')
+      }
     }
 
     if (!hasCurrentSync) {
@@ -115,6 +230,10 @@ export function ensureUserScope(db: Database.Database, userEmail: string): void 
 
     seedUserSettings(db, normalizedEmail)
     seedUserSyncState(db, normalizedEmail)
+
+    if (!hasAthlete(db, normalizedEmail)) {
+      resetInheritedUserState(db, normalizedEmail)
+    }
   })
 
   adoptionTransaction()

@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
 import { DEFAULT_SETTINGS } from '../../shared/constants'
 import type { AppSettings, StravaAppSettings } from '../../shared/types'
+import { LEGACY_USER_EMAIL } from '../utils/currentUser'
 
 interface RuntimeStravaConfig {
   stravaClientId: string
@@ -67,7 +68,8 @@ function normalizeSettings(value: AppSettings | null | undefined): AppSettings {
 }
 
 export function getSettings(db: Database.Database, userEmail: string): AppSettings {
-  const value = getUserStoredJson<AppSettings>(db, userEmail, 'app_settings') ?? getStoredJson<AppSettings>(db, 'app_settings')
+  const value = getUserStoredJson<AppSettings>(db, userEmail, 'app_settings')
+    ?? (userEmail === LEGACY_USER_EMAIL ? getStoredJson<AppSettings>(db, 'app_settings') : null)
   return normalizeSettings(value)
 }
 
@@ -84,7 +86,7 @@ export function saveSettings(db: Database.Database, userEmail: string, settings:
 
 export function getEffectiveStravaCredentials(db: Database.Database, userEmail: string, runtimeConfig: RuntimeStravaConfig): StoredStravaCredentials | null {
   const stored = getUserStoredJson<StoredStravaCredentials>(db, userEmail, 'strava_app_credentials')
-    ?? getStoredJson<StoredStravaCredentials>(db, 'strava_app_credentials')
+    ?? (userEmail === LEGACY_USER_EMAIL ? getStoredJson<StoredStravaCredentials>(db, 'strava_app_credentials') : null)
   const clientId = normalizeText(stored?.clientId ?? runtimeConfig.stravaClientId)
   const clientSecret = normalizeText(stored?.clientSecret ?? runtimeConfig.stravaClientSecret)
 

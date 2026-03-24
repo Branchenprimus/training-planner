@@ -1,6 +1,8 @@
 import { createError, getQuery } from 'h3'
 import { initializeDatabase } from '../../database/bootstrap'
 import { getActivitiesBySport } from '../../repositories/activityRepository'
+import { getSettings } from '../../repositories/settingsRepository'
+import { attachRelativeEffortBreakdowns } from '../../services/analysis/activityEnrichmentService'
 import type { PaginatedActivitiesResponse, SportType } from '../../../shared/types'
 import { ensureUserScope, resolveCurrentUserEmail } from '../../utils/currentUser'
 
@@ -21,6 +23,7 @@ export default defineEventHandler((event): PaginatedActivitiesResponse => {
   const db = initializeDatabase()
   const userEmail = resolveCurrentUserEmail(event)
   ensureUserScope(db, userEmail)
+  const settings = getSettings(db, userEmail)
   const result = getActivitiesBySport(db, userEmail, sport, page, pageSize, oneYearAgo.toISOString())
 
   return {
@@ -28,6 +31,6 @@ export default defineEventHandler((event): PaginatedActivitiesResponse => {
     page,
     pageSize,
     total: result.total,
-    items: result.items
+    items: attachRelativeEffortBreakdowns(db, result.items, settings)
   }
 })

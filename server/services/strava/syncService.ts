@@ -18,6 +18,12 @@ interface StoredActivityPayload {
   streams: RelativeEffortStreams | null
 }
 
+interface MissingRelativeEffortActivity {
+  activityId: number
+  sourceActivityId: number
+  sport: Extract<SportType, 'running' | 'cycling'>
+}
+
 function normalizeSport(activity: StravaActivity): SportType | null {
   const value = activity.sport_type || activity.type
   const normalized = value.toLowerCase()
@@ -59,14 +65,16 @@ async function ensureValidToken(userEmail: string) {
   }
 
   const refreshed = await refreshStravaToken(token.refreshToken, userEmail)
-  const updatedAthlete = upsertAthlete(db, {
-    userEmail,
-    stravaAthleteId: refreshed.athlete.id,
-    username: refreshed.athlete.username,
-    firstname: refreshed.athlete.firstname,
-    lastname: refreshed.athlete.lastname,
-    profileMedium: refreshed.athlete.profile_medium
-  })
+  const updatedAthlete = refreshed.athlete
+    ? upsertAthlete(db, {
+        userEmail,
+        stravaAthleteId: refreshed.athlete.id,
+        username: refreshed.athlete.username,
+        firstname: refreshed.athlete.firstname,
+        lastname: refreshed.athlete.lastname,
+        profileMedium: refreshed.athlete.profile_medium
+      })
+    : athlete
 
   upsertToken(db, {
     athleteId: updatedAthlete.id,
@@ -84,6 +92,12 @@ async function ensureValidToken(userEmail: string) {
 export async function connectStravaAccount(code: string, userEmail: string): Promise<SyncStatus> {
   const db = initializeDatabase()
   const tokenResponse = await exchangeCodeForToken(code, userEmail)
+  if (!tokenResponse.athlete) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Strava did not return athlete details during authorization.'
+    })
+  }
 
   const athlete = upsertAthlete(db, {
     userEmail,
@@ -143,6 +157,45 @@ function serializeActivityPayload(activity: StravaActivity, streams: RelativeEff
   }
 
   return JSON.stringify(payload)
+}
+
+function listActivitiesMissingRelativeEffort(
+  db: ReturnType<typeof initializeDatabase>,
+  athleteId: number
+): MissingRelativeEffortActivity[] {
+  return db.prepare(`
+    SELECT
+      activity.id AS activity_id,
+      activity.source_activity_id,
+      activity.sport
+    FROM activities activity
+    JOIN activity_analysis analysis ON analysis.activity_id = activity.id
+    WHERE activity.athlete_id = ?
+      AND activity.sport IN ('running', 'cycling')
+      AND activity.average_heart_rate IS NOT NULL
+      AND analysis.relative_effort IS NULL
+    ORDER BY activity.start_date DESC
+  `).all(athleteId) as MissingRelativeEffortActivity[]
+}
+
+function updateBackfilledRelativeEffort(
+  db: ReturnType<typeof initializeDatabase>,
+  activityId: number,
+  relativeEffort: number,
+  streams: RelativeEffortStreams
+) {
+  const now = new Date().toISOString()
+  db.prepare(`
+    UPDATE activity_analysis
+    SET relative_effort = ?, updated_at = ?
+    WHERE activity_id = ?
+  `).run(relativeEffort, now, activityId)
+
+  db.prepare(`
+    UPDATE activities
+    SET raw_payload = ?, updated_at = ?
+    WHERE id = ?
+  `).run(JSON.stringify({ streams }), now, activityId)
 }
 
 function buildAfterTimestamp(userEmail: string): number | undefined {
@@ -227,7 +280,7 @@ export async function runStravaSync(reason = 'manual', userEmail: string): Promi
             activityId,
             formattedPerformance: formatPerformanceBySport(sport, activity.distance, activity.elapsed_time, activity.average_speed),
             hrPercentOfMax: hr.hrPercentOfMax,
-            relativeEffort: computeRelativeEffort(settings, sport, relativeEffortStreams),
+            relativeEffort: computeRelativeEffort(settings, sport, relativeEffortStreams, activity.average_heartrate, activity.elapsed_time),
             hrZoneLabel: hr.hrZoneLabel,
             classification: hr.classification,
             isEasySession: training.isEasySession,
@@ -246,6 +299,38 @@ export async function runStravaSync(reason = 'manual', userEmail: string): Promi
         }
 
         page += 1
+      }
+
+      for (const activity of listActivitiesMissingRelativeEffort(db, athlete.id)) {
+        const relativeEffortStreams = await fetchRelativeEffortStreams(
+          accessToken,
+          {
+            id: activity.sourceActivityId,
+            type: activity.sport === 'running' ? 'Run' : 'Ride',
+            sport_type: activity.sport === 'running' ? 'Run' : 'Ride',
+            name: '',
+            start_date: '',
+            timezone: null,
+            elapsed_time: 0,
+            moving_time: null,
+            distance: 0,
+            average_heartrate: 1,
+            total_elevation_gain: null,
+            average_speed: null
+          },
+          activity.sport
+        )
+
+        if (!relativeEffortStreams) {
+          continue
+        }
+
+        const relativeEffort = computeRelativeEffort(settings, activity.sport, relativeEffortStreams)
+        if (relativeEffort === null) {
+          continue
+        }
+
+        updateBackfilledRelativeEffort(db, activity.activityId, relativeEffort, relativeEffortStreams)
       }
 
       return updateSyncStatus(db, userEmail, {

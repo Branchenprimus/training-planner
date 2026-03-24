@@ -19,8 +19,8 @@ export function initializeDatabase() {
       FROM activity_analysis analysis
       JOIN activities activity ON activity.id = analysis.activity_id
       WHERE analysis.relative_effort IS NULL
-        AND activity.raw_payload LIKE '%"heartrate":[%'
-        AND activity.raw_payload LIKE '%"time":[%'
+        AND activity.sport IN ('running', 'cycling')
+        AND activity.average_heart_rate IS NOT NULL
     `).get() as { count: number }
 
     if (missingRelativeEffortWithStreams.count > 0) {

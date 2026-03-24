@@ -23,14 +23,17 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
   const userEmail = resolveCurrentUserEmail(event)
   ensureUserScope(db, userEmail)
   const config = useRuntimeConfig()
-  saveStravaCredentials(db, userEmail, {
-    clientId: parsed.data.stravaClientId,
-    clientSecret: parsed.data.stravaClientSecret
-  }, {
-    stravaClientId: config.stravaClientId,
-    stravaClientSecret: config.stravaClientSecret,
-    stravaRedirectUri: config.stravaRedirectUri
-  })
+  const hasCredentialInput = Boolean(parsed.data.stravaClientId?.trim() || parsed.data.stravaClientSecret?.trim())
+  if (hasCredentialInput) {
+    saveStravaCredentials(db, userEmail, {
+      clientId: parsed.data.stravaClientId ?? '',
+      clientSecret: parsed.data.stravaClientSecret
+    }, {
+      stravaClientId: config.stravaClientId,
+      stravaClientSecret: config.stravaClientSecret,
+      stravaRedirectUri: config.stravaRedirectUri
+    })
+  }
 
   const settings = saveSettings(db, userEmail, {
     language: parsed.data.language,

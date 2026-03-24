@@ -88,6 +88,15 @@ export interface ActivityAnalysisRecord {
   updatedAt: string
 }
 
+export interface RelativeEffortBreakdown {
+  z1: number
+  z2: number
+  z3: number
+  z4: number
+  z5: number
+  method: 'stream' | 'average'
+}
+
 export interface ActivityListItem {
   id: number
   sourceActivityId: number
@@ -109,6 +118,7 @@ export interface ActivityListItem {
   classification: ActivityClassification
   isEasySession: boolean
   isHardSession: boolean
+  relativeEffortBreakdown?: RelativeEffortBreakdown | null
 }
 
 export interface CounterSummary {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AppSettings, SettingsResponse, SettingsUpdateRequest } from '~/shared/types'
+import { formatLocalizedDate } from '~/shared/format'
 
 const { t } = useI18n()
 
@@ -14,6 +15,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   save: [value: SettingsUpdateRequest]
   resetStrava: []
+  sync: []
 }>()
 
 const zoneFields = [
@@ -133,6 +135,8 @@ const clientSecretPlaceholder = computed(() =>
   props.stravaApp.hasClientSecret ? t('settings.clientSecretPlaceholderKeep') : t('settings.clientSecretPlaceholderPaste')
 )
 
+const syncStatus = computed(() => props.connectionStatus.syncStatus)
+
 function bpmFromPercent(maxHr: number, percentage: number) {
   if (!Number.isFinite(maxHr) || !Number.isFinite(percentage) || maxHr <= 0 || percentage <= 0) {
     return null
@@ -147,25 +151,6 @@ function bpmFromPercent(maxHr: number, percentage: number) {
     <div>
       <h2 class="section-title">{{ t('settings.title') }}</h2>
       <p class="section-subtitle">{{ t('settings.subtitle') }}</p>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-block">
-        <div class="stat-label">{{ t('settings.syncInterval') }}</div>
-        <div class="stat-value">{{ syncIntervalMinutes }} min</div>
-      </div>
-      <div class="stat-block">
-        <div class="stat-label">{{ t('settings.connection') }}</div>
-        <div class="stat-value">{{ connectionStatus.syncStatus.connected ? t('settings.connected') : t('settings.disconnected') }}</div>
-      </div>
-      <div class="stat-block">
-        <div class="stat-label">{{ t('settings.signedInAs') }}</div>
-        <div class="stat-value email-value">{{ connectionStatus.userEmail }}</div>
-      </div>
-      <div class="stat-block">
-        <div class="stat-label">{{ t('settings.stravaApp') }}</div>
-        <div class="stat-value">{{ stravaApp.hasConfiguredCredentials ? t('settings.configured') : t('settings.needsSetup') }}</div>
-      </div>
     </div>
 
     <div class="stack">
@@ -195,6 +180,25 @@ function bpmFromPercent(maxHr: number, percentage: number) {
           <span class="pill">{{ stravaApp.hasConfiguredCredentials ? t('settings.credentialsSaved') : t('settings.credentialsMissing') }}</span>
         </div>
 
+        <div class="stat-grid">
+          <div class="stat-block">
+            <div class="stat-label">{{ t('settings.syncInterval') }}</div>
+            <div class="stat-value">{{ syncIntervalMinutes }} min</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-label">{{ t('settings.connection') }}</div>
+            <div class="stat-value">{{ connectionStatus.syncStatus.connected ? t('settings.connected') : t('settings.disconnected') }}</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-label">{{ t('settings.signedInAs') }}</div>
+            <div class="stat-value email-value">{{ connectionStatus.userEmail }}</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-label">{{ t('settings.stravaApp') }}</div>
+            <div class="stat-value">{{ stravaApp.hasConfiguredCredentials ? t('settings.configured') : t('settings.needsSetup') }}</div>
+          </div>
+        </div>
+
         <div class="helper-card stack">
           <div>
             <p class="helper-title">{{ t('settings.stravaHintTitle') }}</p>
@@ -207,6 +211,48 @@ function bpmFromPercent(maxHr: number, percentage: number) {
           <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
             {{ t('settings.openStravaSettings') }}
           </a>
+        </div>
+
+        <div class="helper-card stack">
+          <div class="section-heading">
+            <div>
+              <p class="helper-title">{{ t('settings.manualPullTitle') }}</p>
+              <p class="muted">{{ t('settings.manualPullSubtitle') }}</p>
+            </div>
+            <span class="pill" :class="{ 'connected-pill': syncStatus.connected }">
+              {{ syncStatus.connected ? t('settings.connected') : t('settings.disconnected') }}
+            </span>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-block">
+              <div class="stat-label">{{ t('settings.lastDataPull') }}</div>
+              <div class="stat-value">
+                {{ syncStatus.lastSyncAt ? formatLocalizedDate(syncStatus.lastSyncAt) : t('settings.neverSynced') }}
+              </div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">{{ t('settings.lastPullStatus') }}</div>
+              <div class="stat-value">{{ syncStatus.lastSyncStatus }}</div>
+            </div>
+            <div class="stat-block">
+              <div class="stat-label">{{ t('settings.importedThisRun') }}</div>
+              <div class="stat-value">{{ syncStatus.importedActivities }}</div>
+            </div>
+          </div>
+
+          <p class="muted">{{ syncStatus.lastSyncMessage ?? t('settings.waitingForFirstSync') }}</p>
+
+          <div class="inline-actions">
+            <button
+              class="btn btn-primary"
+              type="button"
+              :disabled="syncStatus.isSyncing || !syncStatus.connected"
+              @click="emit('sync')"
+            >
+              {{ syncStatus.isSyncing ? t('settings.syncingNow') : t('settings.manualPullButton') }}
+            </button>
+          </div>
         </div>
 
         <div class="form-grid">
@@ -358,6 +404,11 @@ function bpmFromPercent(maxHr: number, percentage: number) {
 .btn-danger-soft {
   background: rgba(166, 60, 51, 0.12);
   color: var(--danger);
+}
+
+.connected-pill {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
 }
 
 .settings-footer-actions {

@@ -4,6 +4,7 @@ import { getActivitiesForCounter, getRecentActivities } from '../repositories/ac
 import { getSettings } from '../repositories/settingsRepository'
 import { getSyncStatus } from '../repositories/syncRepository'
 import { buildCounterSummary } from '../domain/training'
+import { attachRelativeEffortBreakdowns } from '../services/analysis/activityEnrichmentService'
 import type { DashboardSummary } from '../../shared/types'
 import { ensureUserScope, resolveCurrentUserEmail } from '../utils/currentUser'
 
@@ -23,6 +24,6 @@ export default defineEventHandler((event): DashboardSummary => {
       buildCounterSummary('running', getActivitiesForCounter(db, userEmail, 'running'), settings.zone2SessionsBeforeInterval, settings.intervalSessionsInBlock),
       buildCounterSummary('cycling', getActivitiesForCounter(db, userEmail, 'cycling'), settings.zone2SessionsBeforeInterval, settings.intervalSessionsInBlock)
     ],
-    recentActivities: getRecentActivities(db, userEmail, recentLimit, oneYearAgo.toISOString())
+    recentActivities: attachRelativeEffortBreakdowns(db, getRecentActivities(db, userEmail, recentLimit, oneYearAgo.toISOString()), settings)
   }
 })

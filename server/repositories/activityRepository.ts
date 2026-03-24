@@ -245,3 +245,18 @@ export function getActivityCount(db: Database.Database, userEmail: string): numb
     `).get(userEmail) as { count: number }
   ).count)
 }
+
+export function getActivityRawPayloads(db: Database.Database, activityIds: number[]): Map<number, string | null> {
+  if (!activityIds.length) {
+    return new Map()
+  }
+
+  const placeholders = activityIds.map(() => '?').join(', ')
+  const rows = db.prepare(`
+    SELECT id, raw_payload
+    FROM activities
+    WHERE id IN (${placeholders})
+  `).all(...activityIds) as Array<{ id: number; raw_payload: string | null }>
+
+  return new Map(rows.map((row) => [row.id, row.raw_payload ?? null]))
+}

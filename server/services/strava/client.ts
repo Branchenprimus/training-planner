@@ -8,7 +8,7 @@ export interface StravaTokenResponse {
   access_token: string
   refresh_token: string
   expires_at: number
-  athlete: {
+  athlete?: {
     id: number
     username: string | null
     firstname: string | null

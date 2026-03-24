@@ -32,7 +32,7 @@ const tabs = computed(() => [
         <div class="top-nav-brand">
           <div class="brand-row">
             <img
-              src="/issue-assets/issue-5-logo.png"
+              src="/issue-assets/issue-5-segment-3.png"
               alt="Training Planner logo"
               class="brand-logo"
             >
@@ -81,18 +81,16 @@ const tabs = computed(() => [
   width: min(1200px, calc(100vw - 2rem));
   margin: 0 auto;
   padding: 1rem 1.2rem;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: flex-start;
-  justify-content: space-between;
 }
 
 .top-nav-left {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 1 1 34rem;
   min-width: 0;
 }
 
@@ -140,8 +138,11 @@ const tabs = computed(() => [
 
 .brand-logo {
   display: block;
-  width: auto;
-  height: clamp(2.4rem, 3.2vw, 3rem);
+  width: clamp(2.6rem, 3.2vw, 3.1rem);
+  height: clamp(2.6rem, 3.2vw, 3.1rem);
+  object-fit: cover;
+  object-position: center;
+  border-radius: 0.9rem;
   flex-shrink: 0;
 }
 
@@ -165,11 +166,9 @@ h1 {
 .top-nav-actions {
   display: flex;
   flex-direction: column;
-  flex: 0 1 30rem;
   align-items: flex-end;
   gap: 0.75rem;
-  min-width: min(100%, 20rem);
-  margin-left: auto;
+  min-width: fit-content;
 }
 
 .signed-in-badge {
@@ -213,10 +212,9 @@ h1 {
 
 .top-nav-links {
   display: flex;
-  flex-wrap: wrap;
+  grid-column: 1 / -1;
   gap: 0.55rem;
-  width: 100%;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .nav-link {
@@ -233,6 +231,8 @@ h1 {
 
 @media (max-width: 960px) {
   .top-nav {
+    display: flex;
+    flex-wrap: wrap;
     width: min(100vw - 1rem, 100%);
     padding: 0.85rem 0.95rem;
     gap: 0.75rem;

@@ -26,6 +26,6 @@ export const appSettingsSchema = z.object({
 })
 
 export const settingsSchema = appSettingsSchema.extend({
-  stravaClientId: z.string().trim().min(1, 'Strava app client ID is required.').max(100),
+  stravaClientId: z.string().trim().max(100).optional().or(z.literal('')),
   stravaClientSecret: z.string().trim().max(200).optional().or(z.literal(''))
 })
