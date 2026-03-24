@@ -30,8 +30,10 @@ function cloneAppSettings(value: AppSettings): AppSettings {
     language: value.language,
     runningMaxHr: value.runningMaxHr,
     cyclingMaxHr: value.cyclingMaxHr,
-    zone2SessionsBeforeInterval: value.zone2SessionsBeforeInterval,
-    intervalSessionsInBlock: value.intervalSessionsInBlock,
+    runningZone2SessionsBeforeInterval: value.runningZone2SessionsBeforeInterval,
+    runningIntervalSessionsInBlock: value.runningIntervalSessionsInBlock,
+    cyclingZone2SessionsBeforeInterval: value.cyclingZone2SessionsBeforeInterval,
+    cyclingIntervalSessionsInBlock: value.cyclingIntervalSessionsInBlock,
     runningZones: {
       zone2: { ...value.runningZones.zone2 },
       zone3: { ...value.runningZones.zone3 },
@@ -59,7 +61,14 @@ const form = reactive<SettingsUpdateRequest>(createFormState(props.value, props.
 const saveDebounceMs = 500
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 let isHydratingFromServer = false
+let isSyncingRatios = false
 let lastEmittedSignature = settingsSignature(buildPayload())
+const ratiosLocked = ref(areRatiosLinked(props.value))
+
+function areRatiosLinked(value: AppSettings) {
+  return value.runningZone2SessionsBeforeInterval === value.cyclingZone2SessionsBeforeInterval
+    && value.runningIntervalSessionsInBlock === value.cyclingIntervalSessionsInBlock
+}
 
 function buildPayload(): SettingsUpdateRequest {
   return {
@@ -78,6 +87,7 @@ watch(
   (value) => {
     isHydratingFromServer = true
     Object.assign(form, createFormState(value, props.stravaApp))
+    ratiosLocked.value = areRatiosLinked(value)
     lastEmittedSignature = settingsSignature(buildPayload())
     queueMicrotask(() => {
       isHydratingFromServer = false
@@ -91,12 +101,48 @@ watch(
   (value) => {
     isHydratingFromServer = true
     Object.assign(form, createFormState(props.value, value))
+    ratiosLocked.value = areRatiosLinked(props.value)
     lastEmittedSignature = settingsSignature(buildPayload())
     queueMicrotask(() => {
       isHydratingFromServer = false
     })
   },
   { deep: true }
+)
+
+watch(
+  () => [
+    form.runningZone2SessionsBeforeInterval,
+    form.runningIntervalSessionsInBlock,
+    form.cyclingZone2SessionsBeforeInterval,
+    form.cyclingIntervalSessionsInBlock
+  ],
+  (next, previous) => {
+    if (isHydratingFromServer || isSyncingRatios || !ratiosLocked.value || !previous) {
+      return
+    }
+
+    const changedIndex = next.findIndex((value, index) => value !== previous[index])
+    if (changedIndex === -1) {
+      return
+    }
+
+    isSyncingRatios = true
+
+    if (changedIndex === 0) {
+      form.cyclingZone2SessionsBeforeInterval = form.runningZone2SessionsBeforeInterval
+    } else if (changedIndex === 1) {
+      form.cyclingIntervalSessionsInBlock = form.runningIntervalSessionsInBlock
+    } else if (changedIndex === 2) {
+      form.runningZone2SessionsBeforeInterval = form.cyclingZone2SessionsBeforeInterval
+    } else if (changedIndex === 3) {
+      form.runningIntervalSessionsInBlock = form.cyclingIntervalSessionsInBlock
+    }
+
+    queueMicrotask(() => {
+      isSyncingRatios = false
+    })
+  }
 )
 
 watch(
@@ -136,6 +182,7 @@ const clientSecretPlaceholder = computed(() =>
 )
 
 const syncStatus = computed(() => props.connectionStatus.syncStatus)
+const ratioLockLabel = computed(() => t(ratiosLocked.value ? 'settings.ratioUnlock' : 'settings.ratioLock'))
 
 function bpmFromPercent(maxHr: number, percentage: number) {
   if (!Number.isFinite(maxHr) || !Number.isFinite(percentage) || maxHr <= 0 || percentage <= 0) {
@@ -143,6 +190,17 @@ function bpmFromPercent(maxHr: number, percentage: number) {
   }
 
   return Math.round((maxHr * percentage) / 100)
+}
+
+function toggleRatioLock() {
+  if (ratiosLocked.value) {
+    ratiosLocked.value = false
+    return
+  }
+
+  ratiosLocked.value = true
+  form.cyclingZone2SessionsBeforeInterval = form.runningZone2SessionsBeforeInterval
+  form.cyclingIntervalSessionsInBlock = form.runningIntervalSessionsInBlock
 }
 </script>
 
@@ -160,18 +218,84 @@ function bpmFromPercent(maxHr: number, percentage: number) {
           <p class="section-subtitle">{{ t('settings.trainingRatioSubtitle') }}</p>
         </div>
 
-        <div class="form-grid">
-          <div class="field">
-            <label for="zone2SessionsBeforeInterval">{{ t('settings.zone2BeforeInterval') }}</label>
-            <input id="zone2SessionsBeforeInterval" v-model.number="form.zone2SessionsBeforeInterval" type="number" min="1" max="30">
+        <div class="ratio-editor">
+          <div class="ratio-sport-card card">
+            <div>
+              <h4 class="ratio-sport-title">{{ t('sport.running') }}</h4>
+            </div>
+            <div class="field">
+              <label for="runningZone2SessionsBeforeInterval">{{ t('settings.zone2BeforeInterval') }}</label>
+              <input
+                id="runningZone2SessionsBeforeInterval"
+                v-model.number="form.runningZone2SessionsBeforeInterval"
+                type="number"
+                min="1"
+                max="30"
+              >
+            </div>
+            <div class="field">
+              <label for="runningIntervalSessionsInBlock">{{ t('settings.intervalSessions') }}</label>
+              <input
+                id="runningIntervalSessionsInBlock"
+                v-model.number="form.runningIntervalSessionsInBlock"
+                type="number"
+                min="1"
+                max="10"
+              >
+            </div>
           </div>
-          <div class="field">
-            <label for="intervalSessionsInBlock">{{ t('settings.intervalSessions') }}</label>
-            <input id="intervalSessionsInBlock" v-model.number="form.intervalSessionsInBlock" type="number" min="1" max="10">
+
+          <button
+            class="ratio-lock-button"
+            type="button"
+            :aria-label="ratioLockLabel"
+            :title="ratioLockLabel"
+            :class="{ 'ratio-lock-button-unlocked': !ratiosLocked }"
+            @click="toggleRatioLock"
+          >
+            <svg v-if="ratiosLocked" class="ratio-lock-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M17 9h-1V7a4 4 0 1 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-6 6.73V17a1 1 0 1 0 2 0v-1.27a2 2 0 1 0-2 0ZM10 9V7a2 2 0 1 1 4 0v2h-4Z"
+              />
+            </svg>
+            <svg v-else class="ratio-lock-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M17 9h-6V7a4 4 0 1 1 7.45 2h-2.41A2 2 0 0 0 16 7a2 2 0 1 0-4 0v2h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1.5v2H7v8h10v-8Zm-6 6.73V17a1 1 0 1 0 2 0v-1.27a2 2 0 1 0-2 0Z"
+              />
+            </svg>
+          </button>
+
+          <div class="ratio-sport-card card">
+            <div>
+              <h4 class="ratio-sport-title">{{ t('sport.cycling') }}</h4>
+            </div>
+            <div class="field">
+              <label for="cyclingZone2SessionsBeforeInterval">{{ t('settings.zone2BeforeInterval') }}</label>
+              <input
+                id="cyclingZone2SessionsBeforeInterval"
+                v-model.number="form.cyclingZone2SessionsBeforeInterval"
+                type="number"
+                min="1"
+                max="30"
+              >
+            </div>
+            <div class="field">
+              <label for="cyclingIntervalSessionsInBlock">{{ t('settings.intervalSessions') }}</label>
+              <input
+                id="cyclingIntervalSessionsInBlock"
+                v-model.number="form.cyclingIntervalSessionsInBlock"
+                type="number"
+                min="1"
+                max="10"
+              >
+            </div>
           </div>
         </div>
 
-        <p class="field-help">{{ t('settings.currentPlan', { zone2: form.zone2SessionsBeforeInterval, interval: form.intervalSessionsInBlock }) }}</p>
+        <p class="field-help">{{ t('settings.currentRunningPlan', { zone2: form.runningZone2SessionsBeforeInterval, interval: form.runningIntervalSessionsInBlock }) }}</p>
+        <p class="field-help">{{ t('settings.currentCyclingPlan', { zone2: form.cyclingZone2SessionsBeforeInterval, interval: form.cyclingIntervalSessionsInBlock }) }}</p>
       </div>
 
       <div class="stack settings-section">
@@ -401,6 +525,53 @@ function bpmFromPercent(maxHr: number, percentage: number) {
 </template>
 
 <style scoped>
+.ratio-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.ratio-sport-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.ratio-sport-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.ratio-lock-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid rgba(118, 94, 62, 0.18);
+  border-radius: 999px;
+  background: rgba(166, 60, 51, 0.12);
+  color: #7f241d;
+  box-shadow: 0 10px 24px rgba(127, 36, 29, 0.08);
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.ratio-lock-button:hover {
+  transform: translateY(-1px);
+}
+
+.ratio-lock-button-unlocked {
+  background: rgba(118, 94, 62, 0.08);
+  color: #765e3e;
+}
+
+.ratio-lock-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
 .btn-danger-soft {
   background: rgba(166, 60, 51, 0.12);
   color: var(--danger);
@@ -440,5 +611,15 @@ function bpmFromPercent(maxHr: number, percentage: number) {
 .email-value {
   font-size: 0.95rem;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .ratio-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .ratio-lock-button {
+    justify-self: center;
+  }
 }
 </style>

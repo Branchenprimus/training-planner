@@ -50,6 +50,7 @@ function hasLegacySharedSetting(db: Database.Database, key: string): boolean {
 }
 
 function normalizeAppSettingsValue(value: Record<string, unknown> | null | undefined) {
+  const { zone2SessionsBeforeInterval: _legacyZone2, intervalSessionsInBlock: _legacyInterval, ...rest } = value ?? {}
   const legacyZone2 = typeof value?.zone2SessionsBeforeInterval === 'number'
     ? value.zone2SessionsBeforeInterval
     : DEFAULT_SETTINGS.runningZone2SessionsBeforeInterval
@@ -59,7 +60,7 @@ function normalizeAppSettingsValue(value: Record<string, unknown> | null | undef
 
   return {
     ...DEFAULT_SETTINGS,
-    ...value,
+    ...rest,
     runningZone2SessionsBeforeInterval:
       typeof value?.runningZone2SessionsBeforeInterval === 'number' ? value.runningZone2SessionsBeforeInterval : legacyZone2,
     runningIntervalSessionsInBlock:

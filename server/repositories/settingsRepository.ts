@@ -50,6 +50,7 @@ function getUserStoredJson<T>(db: Database.Database, userEmail: string, key: str
 }
 
 function normalizeSettings(value: LegacyAppSettings | null | undefined): AppSettings {
+  const { zone2SessionsBeforeInterval: _legacyZone2, intervalSessionsInBlock: _legacyInterval, ...rest } = value ?? {}
   const legacyZone2 = typeof value?.zone2SessionsBeforeInterval === 'number'
     ? value.zone2SessionsBeforeInterval
     : DEFAULT_SETTINGS.runningZone2SessionsBeforeInterval
@@ -59,7 +60,7 @@ function normalizeSettings(value: LegacyAppSettings | null | undefined): AppSett
 
   return {
     ...DEFAULT_SETTINGS,
-    ...value,
+    ...rest,
     runningZone2SessionsBeforeInterval: value?.runningZone2SessionsBeforeInterval ?? legacyZone2,
     runningIntervalSessionsInBlock: value?.runningIntervalSessionsInBlock ?? legacyInterval,
     cyclingZone2SessionsBeforeInterval: value?.cyclingZone2SessionsBeforeInterval ?? legacyZone2,
