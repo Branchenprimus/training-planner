@@ -161,7 +161,14 @@ Notes:
 - The dev container uses polling-based file watching so changes reliably trigger through SSH and Docker bind mounts on the Pi.
 - Dev runs on `3001` so production can keep running on `3000`.
 - The dev database is separate from production to avoid polluting public data while testing.
-- If dependencies change in `package.json`, rebuild the dev container again:
+- On startup, the dev container now checks `package.json` and `package-lock.json`, runs `npm ci` automatically if dependencies changed, and clears the `.nuxt` cache to avoid stale dev state.
+- If the dev container itself gets stuck, restart it before reaching for a rebuild:
+
+```bash
+docker compose -f docker-compose.dev.yml restart app-dev
+```
+
+- If you changed the base image or Dockerfile layers, rebuild the dev container:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build

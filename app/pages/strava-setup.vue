@@ -63,6 +63,7 @@ function buildPayload(): SettingsUpdateRequest {
   const settings = data.value!.settings
   return {
     language: settings.language,
+    syncIntervalMinutes: settings.syncIntervalMinutes,
     runningMaxHr: settings.runningMaxHr,
     cyclingMaxHr: settings.cyclingMaxHr,
     runningZones: settings.runningZones,

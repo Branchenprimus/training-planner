@@ -7,6 +7,7 @@ const zoneSchema = z.object({
 
 export const appSettingsSchema = z.object({
   language: z.enum(['en', 'de']),
+  syncIntervalMinutes: z.number().int().min(5).max(1440),
   runningMaxHr: z.number().int().min(100).max(240),
   cyclingMaxHr: z.number().int().min(100).max(240),
   runningZones: z.object({

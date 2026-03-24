@@ -57,6 +57,7 @@ function saveLanguage(language: 'en' | 'de') {
 
   void saveSettings({
     language,
+    syncIntervalMinutes: data.value.settings.syncIntervalMinutes,
     runningMaxHr: data.value.settings.runningMaxHr,
     cyclingMaxHr: data.value.settings.cyclingMaxHr,
     runningZones: data.value.settings.runningZones,
@@ -119,7 +120,6 @@ function onLanguageChange(event: Event) {
     v-else-if="data"
     :value="data.settings"
     :strava-app="data.stravaApp"
-    :sync-interval-minutes="data.syncIntervalMinutes"
     :connection-status="data.connectionStatus"
     :error="error"
     @save="saveSettings"

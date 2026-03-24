@@ -17,6 +17,7 @@ export interface ZoneSettings {
 
 export interface AppSettings {
   language: AppLanguage
+  syncIntervalMinutes: number
   runningMaxHr: number
   cyclingMaxHr: number
   runningZones: ZoneSettings
@@ -186,7 +187,6 @@ export interface PaginatedActivitiesResponse {
 export interface SettingsResponse {
   settings: AppSettings
   stravaApp: StravaAppSettings
-  syncIntervalMinutes: number
   connectionStatus: ConnectionStatusResponse
 }
 

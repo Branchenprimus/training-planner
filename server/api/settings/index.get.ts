@@ -19,7 +19,6 @@ export default defineEventHandler((event): SettingsResponse => {
       stravaClientSecret: config.stravaClientSecret,
       stravaRedirectUri: config.stravaRedirectUri
     }),
-    syncIntervalMinutes: Number(config.syncIntervalMinutes),
     connectionStatus: {
       userEmail,
       athlete: getAthlete(db, userEmail),

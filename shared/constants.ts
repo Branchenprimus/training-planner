@@ -12,6 +12,7 @@ export type DateRange = (typeof DATE_RANGES)[number]
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
+  syncIntervalMinutes: 30,
   runningMaxHr: 190,
   cyclingMaxHr: 180,
   runningZones: {

@@ -7,7 +7,6 @@ const { t } = useI18n()
 const props = defineProps<{
   value: AppSettings
   stravaApp: SettingsResponse['stravaApp']
-  syncIntervalMinutes: number
   connectionStatus: SettingsResponse['connectionStatus']
   error?: string | null
 }>()
@@ -28,6 +27,7 @@ const zoneFields = [
 function cloneAppSettings(value: AppSettings): AppSettings {
   return {
     language: value.language,
+    syncIntervalMinutes: value.syncIntervalMinutes,
     runningMaxHr: value.runningMaxHr,
     cyclingMaxHr: value.cyclingMaxHr,
     runningZone2SessionsBeforeInterval: value.runningZone2SessionsBeforeInterval,
@@ -180,6 +180,22 @@ const canStartStravaConnection = computed(() => props.stravaApp.hasConfiguredCre
 
 const syncStatus = computed(() => props.connectionStatus.syncStatus)
 const ratioLockLabel = computed(() => t(ratiosLocked.value ? 'settings.ratioUnlock' : 'settings.ratioLock'))
+
+watch(
+  () => form.syncIntervalMinutes,
+  (value) => {
+    if (!Number.isFinite(value)) {
+      form.syncIntervalMinutes = 5
+      return
+    }
+
+    const normalized = Math.min(1440, Math.max(5, Math.round(value)))
+    if (normalized !== value) {
+      form.syncIntervalMinutes = normalized
+    }
+  },
+  { immediate: true }
+)
 
 function bpmFromPercent(maxHr: number, percentage: number) {
   if (!Number.isFinite(maxHr) || !Number.isFinite(percentage) || maxHr <= 0 || percentage <= 0) {
@@ -401,9 +417,21 @@ function toggleRatioLock() {
         </div>
 
         <div class="stat-grid">
-          <div class="stat-block">
+          <div class="stat-block stat-block-editable">
             <div class="stat-label">{{ t('settings.syncInterval') }}</div>
-            <div class="stat-value">{{ syncIntervalMinutes }} min</div>
+            <label for="syncIntervalMinutesInline" class="sync-interval-inline">
+              <input
+                id="syncIntervalMinutesInline"
+                v-model.number="form.syncIntervalMinutes"
+                class="sync-interval-input"
+                type="number"
+                min="5"
+                max="1440"
+                step="1"
+              >
+              <span class="sync-interval-unit">min</span>
+            </label>
+            <p class="field-help sync-interval-help">{{ t('settings.syncIntervalHelp') }}</p>
           </div>
           <div class="stat-block">
             <div class="stat-label">{{ t('settings.connection') }}</div>
@@ -585,6 +613,39 @@ function toggleRatioLock() {
 
 .manual-pull-grid > .stat-block {
   min-width: 0;
+}
+
+.stat-block-editable {
+  display: grid;
+  align-content: start;
+}
+
+.sync-interval-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+}
+
+.sync-interval-input {
+  width: 6.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.sync-interval-unit {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sync-interval-help {
+  margin-top: 0.45rem;
 }
 
 .strava-actions-row {

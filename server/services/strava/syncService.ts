@@ -13,6 +13,8 @@ import type { SportType, SyncStatus } from '../../../shared/types'
 import { exchangeCodeForToken, fetchStravaActivities, fetchStravaActivityStreams, refreshStravaToken, type StravaActivity } from './client'
 
 const syncPromises = new Map<string, Promise<SyncStatus>>()
+const SCHEDULER_TICK_MS = 60 * 1000
+const MINIMUM_SYNC_INTERVAL_MINUTES = 5
 
 interface StoredActivityPayload {
   activity: StravaActivity
@@ -393,13 +395,28 @@ export function disconnectStravaAccount(userEmail: string): SyncStatus {
 
 let schedulerStarted = false
 
+function shouldRunScheduledSync(userEmail: string): boolean {
+  const db = initializeDatabase()
+  const syncStatus = getSyncStatus(db, userEmail)
+  if (syncStatus.isSyncing) {
+    return false
+  }
+
+  const settings = getSettings(db, userEmail)
+  const intervalMinutes = Math.max(MINIMUM_SYNC_INTERVAL_MINUTES, Math.floor(settings.syncIntervalMinutes || 0))
+  if (!syncStatus.lastSyncAt) {
+    return true
+  }
+
+  const elapsedMs = Date.now() - new Date(syncStatus.lastSyncAt).getTime()
+  return elapsedMs >= intervalMinutes * 60 * 1000
+}
+
 export function startSyncScheduler(): void {
   if (schedulerStarted) {
     return
   }
 
-  const config = useRuntimeConfig()
-  const intervalMs = Number(config.syncIntervalMinutes) * 60 * 1000
   const timer = setInterval(() => {
     const db = initializeDatabase()
     for (const userEmail of listConnectedUserEmails(db)) {
@@ -407,9 +424,13 @@ export function startSyncScheduler(): void {
         continue
       }
 
+      if (!shouldRunScheduledSync(userEmail)) {
+        continue
+      }
+
       void runStravaSync('scheduled', userEmail)
     }
-  }, intervalMs)
+  }, SCHEDULER_TICK_MS)
 
   timer.unref?.()
   schedulerStarted = true

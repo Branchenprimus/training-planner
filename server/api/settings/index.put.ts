@@ -37,6 +37,7 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
 
   const settings = saveSettings(db, userEmail, {
     language: parsed.data.language,
+    syncIntervalMinutes: parsed.data.syncIntervalMinutes,
     runningMaxHr: parsed.data.runningMaxHr,
     cyclingMaxHr: parsed.data.cyclingMaxHr,
     runningZones: parsed.data.runningZones,
@@ -55,7 +56,6 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
       stravaClientSecret: config.stravaClientSecret,
       stravaRedirectUri: config.stravaRedirectUri
     }),
-    syncIntervalMinutes: Number(config.syncIntervalMinutes),
     connectionStatus: {
       userEmail,
       athlete: getAthlete(db, userEmail),
