@@ -20,6 +20,8 @@ function buildPointTitles(points: ChartSeriesResponse['zone2']) {
 const cyclingZone2 = computed(() => charts.data.value?.zone2 ?? [])
 const cyclingHr = computed(() => charts.data.value?.hrPerformance ?? [])
 const cyclingRelativeEffort = computed(() => charts.data.value?.relativeEffort ?? [])
+const cyclingDistance = computed(() => charts.data.value?.distance ?? [])
+const cyclingDuration = computed(() => charts.data.value?.duration ?? [])
 
 const canLoadMore = computed(() => (data.value?.items.length ?? 0) < (data.value?.total ?? 0))
 
@@ -60,14 +62,14 @@ function loadMore() {
           :labels="buildDateLabels(cyclingZone2)"
           :point-titles="buildPointTitles(cyclingZone2)"
           :datasets="[
-            {
-              label: t('zone2'),
-              data: cyclingZone2.map((point) => point.value),
-              borderColor: '#c97c2a',
-              backgroundColor: 'rgba(201,124,42,0.2)'
-            }
-          ]"
-        />
+          {
+            label: t('zone2'),
+            data: cyclingZone2.map((point) => point.value),
+            borderColor: '#166534',
+            backgroundColor: 'rgba(22,101,52,0.2)'
+          }
+        ]"
+      />
       </div>
 
       <div class="grid-span-6">
@@ -111,6 +113,33 @@ function loadMore() {
               data: cyclingRelativeEffort.map((point) => point.value),
               borderColor: '#a63c33',
               backgroundColor: 'rgba(166,60,51,0.18)'
+            }
+          ]"
+        />
+      </div>
+
+      <div class="grid-span-6">
+        <ChartCard
+          :title="t('cyclingDistanceVsDuration')"
+          :subtitle="t('cyclingDistanceVsDurationSubtitle')"
+          :info-text="t('cyclingDistanceVsDurationInfo')"
+          primary-metric="distanceKm"
+          secondary-metric="durationMinutes"
+          :labels="buildDateLabels(cyclingDistance)"
+          :point-titles="buildPointTitles(cyclingDistance)"
+          :datasets="[
+            {
+              label: t('distanceLabel'),
+              data: cyclingDistance.map((point) => point.value),
+              borderColor: '#c97c2a',
+              backgroundColor: 'rgba(201,124,42,0.2)'
+            },
+            {
+              label: t('durationLabel'),
+              data: cyclingDuration.map((point) => point.value),
+              borderColor: '#6d614f',
+              backgroundColor: 'rgba(109,97,79,0.2)',
+              yAxisID: 'y1'
             }
           ]"
         />

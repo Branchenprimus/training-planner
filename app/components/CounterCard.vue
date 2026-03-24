@@ -67,6 +67,17 @@ const infoText = computed(() => {
   overflow: hidden;
 }
 
+.counter-card .stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: stretch;
+}
+
+.counter-card .stat-block {
+  min-width: 0;
+}
+
 .counter-card.due {
   border-color: rgba(166, 60, 51, 0.45);
   box-shadow: 0 24px 70px rgba(166, 60, 51, 0.2);
@@ -140,6 +151,10 @@ const infoText = computed(() => {
 }
 
 @media (max-width: 640px) {
+  .counter-card .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
   .due-badge {
     position: static;
     display: inline-flex;
