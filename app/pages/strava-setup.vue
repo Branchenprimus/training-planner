@@ -67,8 +67,10 @@ function buildPayload(): SettingsUpdateRequest {
     cyclingMaxHr: settings.cyclingMaxHr,
     runningZones: settings.runningZones,
     cyclingZones: settings.cyclingZones,
-    zone2SessionsBeforeInterval: settings.zone2SessionsBeforeInterval,
-    intervalSessionsInBlock: settings.intervalSessionsInBlock,
+    runningZone2SessionsBeforeInterval: settings.runningZone2SessionsBeforeInterval,
+    runningIntervalSessionsInBlock: settings.runningIntervalSessionsInBlock,
+    cyclingZone2SessionsBeforeInterval: settings.cyclingZone2SessionsBeforeInterval,
+    cyclingIntervalSessionsInBlock: settings.cyclingIntervalSessionsInBlock,
     stravaClientId: form.clientId.trim(),
     stravaClientSecret: form.clientSecret.trim()
   }

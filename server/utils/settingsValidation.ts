@@ -21,8 +21,10 @@ export const appSettingsSchema = z.object({
     zone4: zoneSchema,
     interval: zoneSchema
   }),
-  zone2SessionsBeforeInterval: z.number().int().min(1).max(30),
-  intervalSessionsInBlock: z.number().int().min(1).max(10)
+  runningZone2SessionsBeforeInterval: z.number().int().min(1).max(30),
+  runningIntervalSessionsInBlock: z.number().int().min(1).max(10),
+  cyclingZone2SessionsBeforeInterval: z.number().int().min(1).max(30),
+  cyclingIntervalSessionsInBlock: z.number().int().min(1).max(10)
 })
 
 export const settingsSchema = appSettingsSchema.extend({

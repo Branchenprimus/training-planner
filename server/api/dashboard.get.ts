@@ -21,8 +21,18 @@ export default defineEventHandler((event): DashboardSummary => {
   return {
     syncStatus: getSyncStatus(db, userEmail),
     counters: [
-      buildCounterSummary('running', getActivitiesForCounter(db, userEmail, 'running'), settings.zone2SessionsBeforeInterval, settings.intervalSessionsInBlock),
-      buildCounterSummary('cycling', getActivitiesForCounter(db, userEmail, 'cycling'), settings.zone2SessionsBeforeInterval, settings.intervalSessionsInBlock)
+      buildCounterSummary(
+        'running',
+        getActivitiesForCounter(db, userEmail, 'running'),
+        settings.runningZone2SessionsBeforeInterval,
+        settings.runningIntervalSessionsInBlock
+      ),
+      buildCounterSummary(
+        'cycling',
+        getActivitiesForCounter(db, userEmail, 'cycling'),
+        settings.cyclingZone2SessionsBeforeInterval,
+        settings.cyclingIntervalSessionsInBlock
+      )
     ],
     recentActivities: attachRelativeEffortBreakdowns(db, getRecentActivities(db, userEmail, recentLimit, oneYearAgo.toISOString()), settings)
   }

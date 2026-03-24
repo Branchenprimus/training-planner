@@ -14,6 +14,11 @@ interface StoredStravaCredentials {
   clientSecret: string
 }
 
+interface LegacyAppSettings extends Partial<AppSettings> {
+  zone2SessionsBeforeInterval?: number
+  intervalSessionsInBlock?: number
+}
+
 function normalizeText(value: unknown): string {
   if (typeof value === 'string') {
     return value.trim()
@@ -44,10 +49,21 @@ function getUserStoredJson<T>(db: Database.Database, userEmail: string, key: str
   return JSON.parse(row.value) as T
 }
 
-function normalizeSettings(value: AppSettings | null | undefined): AppSettings {
+function normalizeSettings(value: LegacyAppSettings | null | undefined): AppSettings {
+  const legacyZone2 = typeof value?.zone2SessionsBeforeInterval === 'number'
+    ? value.zone2SessionsBeforeInterval
+    : DEFAULT_SETTINGS.runningZone2SessionsBeforeInterval
+  const legacyInterval = typeof value?.intervalSessionsInBlock === 'number'
+    ? value.intervalSessionsInBlock
+    : DEFAULT_SETTINGS.runningIntervalSessionsInBlock
+
   return {
     ...DEFAULT_SETTINGS,
     ...value,
+    runningZone2SessionsBeforeInterval: value?.runningZone2SessionsBeforeInterval ?? legacyZone2,
+    runningIntervalSessionsInBlock: value?.runningIntervalSessionsInBlock ?? legacyInterval,
+    cyclingZone2SessionsBeforeInterval: value?.cyclingZone2SessionsBeforeInterval ?? legacyZone2,
+    cyclingIntervalSessionsInBlock: value?.cyclingIntervalSessionsInBlock ?? legacyInterval,
     runningZones: {
       ...DEFAULT_SETTINGS.runningZones,
       ...value?.runningZones,
@@ -68,8 +84,8 @@ function normalizeSettings(value: AppSettings | null | undefined): AppSettings {
 }
 
 export function getSettings(db: Database.Database, userEmail: string): AppSettings {
-  const value = getUserStoredJson<AppSettings>(db, userEmail, 'app_settings')
-    ?? (userEmail === LEGACY_USER_EMAIL ? getStoredJson<AppSettings>(db, 'app_settings') : null)
+  const value = getUserStoredJson<LegacyAppSettings>(db, userEmail, 'app_settings')
+    ?? (userEmail === LEGACY_USER_EMAIL ? getStoredJson<LegacyAppSettings>(db, 'app_settings') : null)
   return normalizeSettings(value)
 }
 

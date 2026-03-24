@@ -10,7 +10,8 @@
     "start": "node .output/server/index.mjs",
     "preview": "nuxt preview",
     "migrate": "tsx scripts/migrate.ts",
-    "typecheck": "npx nuxi typecheck",
+    "typecheck": "vue-tsc --noEmit -p .nuxt/tsconfig.json",
+    "typecheck:full": "nuxi typecheck",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {

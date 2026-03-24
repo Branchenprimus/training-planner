@@ -26,6 +26,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     zone4: { min: 85, max: 90 },
     interval: { min: 91, max: 100 }
   },
-  zone2SessionsBeforeInterval: 9,
-  intervalSessionsInBlock: 1
+  runningZone2SessionsBeforeInterval: 9,
+  runningIntervalSessionsInBlock: 1,
+  cyclingZone2SessionsBeforeInterval: 9,
+  cyclingIntervalSessionsInBlock: 1
 }

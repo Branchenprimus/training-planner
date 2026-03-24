@@ -144,6 +144,186 @@ function buildMockActivities(): MockActivitySeed[] {
       elevationGainMeters: 32,
       averageSpeedMps: 2.48,
       streams: buildStreams(2460, [137, 140, 142, 143, 141, 139])
+    },
+    {
+      sourceActivityId: 991007,
+      sport: 'cycling',
+      sourceType: 'Ride',
+      name: 'Lunch Spin',
+      startDate: makeDate(15, 11, 45),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 3180,
+      movingTimeSeconds: 3020,
+      distanceMeters: 22100,
+      averageHeartRate: 128,
+      elevationGainMeters: 140,
+      averageSpeedMps: 6.95,
+      streams: buildStreams(3180, [122, 125, 129, 131, 130, 127])
+    },
+    {
+      sourceActivityId: 991008,
+      sport: 'running',
+      sourceType: 'Run',
+      name: 'Steady Tempo Run',
+      startDate: makeDate(17, 6, 20),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 3540,
+      movingTimeSeconds: 3410,
+      distanceMeters: 10300,
+      averageHeartRate: 166,
+      elevationGainMeters: 66,
+      averageSpeedMps: 2.91,
+      streams: buildStreams(3540, [150, 158, 164, 168, 170, 166])
+    },
+    {
+      sourceActivityId: 991009,
+      sport: 'swimming',
+      sourceType: 'Swim',
+      name: 'Endurance Laps',
+      startDate: makeDate(19, 18, 35),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 2760,
+      movingTimeSeconds: 2520,
+      distanceMeters: 2200,
+      averageHeartRate: null,
+      elevationGainMeters: null,
+      averageSpeedMps: 0.8,
+      streams: null
+    },
+    {
+      sourceActivityId: 991010,
+      sport: 'cycling',
+      sourceType: 'Ride',
+      name: 'Long Saturday Ride',
+      startDate: makeDate(21, 8, 0),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 9240,
+      movingTimeSeconds: 8710,
+      distanceMeters: 68500,
+      averageHeartRate: 136,
+      elevationGainMeters: 780,
+      averageSpeedMps: 7.41,
+      streams: buildStreams(9240, [124, 129, 134, 138, 141, 137])
+    },
+    {
+      sourceActivityId: 991011,
+      sport: 'running',
+      sourceType: 'Run',
+      name: 'Park Fartlek',
+      startDate: makeDate(24, 17, 55),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 2940,
+      movingTimeSeconds: 2760,
+      distanceMeters: 7600,
+      averageHeartRate: 172,
+      elevationGainMeters: 48,
+      averageSpeedMps: 2.59,
+      streams: buildStreams(2940, [146, 156, 170, 178, 175, 166])
+    },
+    {
+      sourceActivityId: 991012,
+      sport: 'running',
+      sourceType: 'Run',
+      name: 'Zone 2 Base Run',
+      startDate: makeDate(27, 6, 10),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 3360,
+      movingTimeSeconds: 3260,
+      distanceMeters: 9800,
+      averageHeartRate: 148,
+      elevationGainMeters: 61,
+      averageSpeedMps: 2.92,
+      streams: buildStreams(3360, [143, 145, 148, 149, 150, 147])
+    },
+    {
+      sourceActivityId: 991013,
+      sport: 'cycling',
+      sourceType: 'Ride',
+      name: 'Cadence Drills',
+      startDate: makeDate(30, 16, 20),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 2640,
+      movingTimeSeconds: 2460,
+      distanceMeters: 17200,
+      averageHeartRate: 124,
+      elevationGainMeters: 95,
+      averageSpeedMps: 6.52,
+      streams: buildStreams(2640, [118, 121, 124, 126, 127, 123])
+    },
+    {
+      sourceActivityId: 991014,
+      sport: 'swimming',
+      sourceType: 'Swim',
+      name: 'Pull Buoy Set',
+      startDate: makeDate(33, 19, 5),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 2100,
+      movingTimeSeconds: 1920,
+      distanceMeters: 1600,
+      averageHeartRate: null,
+      elevationGainMeters: null,
+      averageSpeedMps: 0.76,
+      streams: null
+    },
+    {
+      sourceActivityId: 991015,
+      sport: 'running',
+      sourceType: 'Run',
+      name: 'Threshold Session',
+      startDate: makeDate(36, 17, 25),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 4020,
+      movingTimeSeconds: 3740,
+      distanceMeters: 11100,
+      averageHeartRate: 170,
+      elevationGainMeters: 72,
+      averageSpeedMps: 2.76,
+      streams: buildStreams(4020, [149, 158, 166, 171, 173, 169])
+    },
+    {
+      sourceActivityId: 991016,
+      sport: 'cycling',
+      sourceType: 'Ride',
+      name: 'Evening Recovery Ride',
+      startDate: makeDate(39, 18, 10),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 2880,
+      movingTimeSeconds: 2710,
+      distanceMeters: 18500,
+      averageHeartRate: 120,
+      elevationGainMeters: 88,
+      averageSpeedMps: 6.42,
+      streams: buildStreams(2880, [116, 118, 121, 123, 122, 119])
+    },
+    {
+      sourceActivityId: 991017,
+      sport: 'running',
+      sourceType: 'Run',
+      name: 'Long Easy Run',
+      startDate: makeDate(42, 7, 30),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 6120,
+      movingTimeSeconds: 5890,
+      distanceMeters: 16800,
+      averageHeartRate: 147,
+      elevationGainMeters: 110,
+      averageSpeedMps: 2.75,
+      streams: buildStreams(6120, [142, 145, 147, 149, 150, 147])
+    },
+    {
+      sourceActivityId: 991018,
+      sport: 'cycling',
+      sourceType: 'Ride',
+      name: 'VO2 Climb Repeats',
+      startDate: makeDate(45, 15, 40),
+      timezone: '(GMT+01:00) Europe/Berlin',
+      durationSeconds: 4980,
+      movingTimeSeconds: 4620,
+      distanceMeters: 29400,
+      averageHeartRate: 167,
+      elevationGainMeters: 610,
+      averageSpeedMps: 5.9,
+      streams: buildStreams(4980, [140, 152, 164, 170, 172, 166])
     }
   ]
 }
@@ -165,21 +345,7 @@ export function seedMockStravaDataForDevelopment(db: Database.Database, userEmai
 
   const existingAthlete = getAthlete(db, userEmail)
   const existingToken = getToken(db, userEmail)
-  const existingStatus = getSyncStatus(db, userEmail)
-  const existingActivityCount = Number(
-    (
-      db.prepare(`
-        SELECT COUNT(*) AS count
-        FROM activities activity
-        JOIN athletes athlete ON athlete.id = activity.athlete_id
-        WHERE athlete.user_email = ?
-      `).get(userEmail) as { count: number }
-    ).count
-  )
-
-  if (existingAthlete && existingToken && existingStatus.connected && existingActivityCount > 0) {
-    return
-  }
+  const mockActivities = buildMockActivities()
 
   const athlete = upsertAthlete(db, {
     userEmail,
@@ -200,7 +366,7 @@ export function seedMockStravaDataForDevelopment(db: Database.Database, userEmai
   const settings = getSettings(db, userEmail) ?? DEFAULT_SETTINGS
   const now = new Date().toISOString()
 
-  for (const activity of buildMockActivities()) {
+  for (const activity of mockActivities) {
     const activityId = upsertActivity(db, {
       athleteId: athlete.id,
       sourceActivityId: activity.sourceActivityId,
@@ -271,6 +437,6 @@ export function seedMockStravaDataForDevelopment(db: Database.Database, userEmai
     lastSyncAt: now,
     lastSyncStatus: 'success',
     lastSyncMessage: 'Mock Strava data loaded for local development.',
-    importedActivities: buildMockActivities().length
+    importedActivities: mockActivities.length
   })
 }

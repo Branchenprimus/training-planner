@@ -41,8 +41,10 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
     cyclingMaxHr: parsed.data.cyclingMaxHr,
     runningZones: parsed.data.runningZones,
     cyclingZones: parsed.data.cyclingZones,
-    zone2SessionsBeforeInterval: parsed.data.zone2SessionsBeforeInterval,
-    intervalSessionsInBlock: parsed.data.intervalSessionsInBlock
+    runningZone2SessionsBeforeInterval: parsed.data.runningZone2SessionsBeforeInterval,
+    runningIntervalSessionsInBlock: parsed.data.runningIntervalSessionsInBlock,
+    cyclingZone2SessionsBeforeInterval: parsed.data.cyclingZone2SessionsBeforeInterval,
+    cyclingIntervalSessionsInBlock: parsed.data.cyclingIntervalSessionsInBlock
   } satisfies AppSettings)
   reanalyzeActivities(db, userEmail, settings)
 

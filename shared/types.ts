@@ -21,8 +21,10 @@ export interface AppSettings {
   cyclingMaxHr: number
   runningZones: ZoneSettings
   cyclingZones: ZoneSettings
-  zone2SessionsBeforeInterval: number
-  intervalSessionsInBlock: number
+  runningZone2SessionsBeforeInterval: number
+  runningIntervalSessionsInBlock: number
+  cyclingZone2SessionsBeforeInterval: number
+  cyclingIntervalSessionsInBlock: number
 }
 
 export interface StravaAppSettings {

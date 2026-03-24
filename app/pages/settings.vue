@@ -61,8 +61,10 @@ function saveLanguage(language: 'en' | 'de') {
     cyclingMaxHr: data.value.settings.cyclingMaxHr,
     runningZones: data.value.settings.runningZones,
     cyclingZones: data.value.settings.cyclingZones,
-    zone2SessionsBeforeInterval: data.value.settings.zone2SessionsBeforeInterval,
-    intervalSessionsInBlock: data.value.settings.intervalSessionsInBlock,
+    runningZone2SessionsBeforeInterval: data.value.settings.runningZone2SessionsBeforeInterval,
+    runningIntervalSessionsInBlock: data.value.settings.runningIntervalSessionsInBlock,
+    cyclingZone2SessionsBeforeInterval: data.value.settings.cyclingZone2SessionsBeforeInterval,
+    cyclingIntervalSessionsInBlock: data.value.settings.cyclingIntervalSessionsInBlock,
     stravaClientId: '',
     stravaClientSecret: ''
   })
