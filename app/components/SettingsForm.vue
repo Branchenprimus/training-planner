@@ -219,8 +219,8 @@ function toggleRatioLock() {
         </div>
 
         <div class="ratio-editor">
-          <div class="ratio-sport-card card">
-            <div>
+          <div class="ratio-sport-card">
+            <div class="ratio-sport-header">
               <h4 class="ratio-sport-title">{{ t('sport.running') }}</h4>
             </div>
             <div class="field">
@@ -243,6 +243,9 @@ function toggleRatioLock() {
                 max="10"
               >
             </div>
+            <p class="field-help ratio-plan-copy">
+              {{ t('settings.currentRunningPlan', { zone2: form.runningZone2SessionsBeforeInterval, interval: form.runningIntervalSessionsInBlock }) }}
+            </p>
           </div>
 
           <button
@@ -267,8 +270,8 @@ function toggleRatioLock() {
             </svg>
           </button>
 
-          <div class="ratio-sport-card card">
-            <div>
+          <div class="ratio-sport-card">
+            <div class="ratio-sport-header">
               <h4 class="ratio-sport-title">{{ t('sport.cycling') }}</h4>
             </div>
             <div class="field">
@@ -291,11 +294,11 @@ function toggleRatioLock() {
                 max="10"
               >
             </div>
+            <p class="field-help ratio-plan-copy">
+              {{ t('settings.currentCyclingPlan', { zone2: form.cyclingZone2SessionsBeforeInterval, interval: form.cyclingIntervalSessionsInBlock }) }}
+            </p>
           </div>
         </div>
-
-        <p class="field-help">{{ t('settings.currentRunningPlan', { zone2: form.runningZone2SessionsBeforeInterval, interval: form.runningIntervalSessionsInBlock }) }}</p>
-        <p class="field-help">{{ t('settings.currentCyclingPlan', { zone2: form.cyclingZone2SessionsBeforeInterval, interval: form.cyclingIntervalSessionsInBlock }) }}</p>
       </div>
 
       <div class="stack settings-section">
@@ -527,15 +530,30 @@ function toggleRatioLock() {
 <style scoped>
 .ratio-editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 3.25rem minmax(0, 1fr);
   gap: 1rem;
-  align-items: center;
+  align-items: stretch;
 }
 
 .ratio-sport-card {
   display: grid;
+  grid-template-rows: auto auto auto 1fr;
   gap: 0.9rem;
-  padding: 1rem;
+  height: 100%;
+  padding: 1rem 1rem 1.1rem;
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.94), rgba(255, 251, 245, 0.9));
+  border: 1px solid rgba(64, 45, 22, 0.11);
+  border-radius: var(--radius);
+  box-shadow:
+    0 18px 44px rgba(53, 38, 18, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.ratio-sport-header {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
 }
 
 .ratio-sport-title {
@@ -544,22 +562,30 @@ function toggleRatioLock() {
   font-weight: 800;
 }
 
+.ratio-plan-copy {
+  align-self: end;
+  margin-top: 0.1rem;
+}
+
 .ratio-lock-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
+  align-self: center;
+  justify-self: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
   border: 1px solid rgba(118, 94, 62, 0.18);
   border-radius: 999px;
   background: rgba(166, 60, 51, 0.12);
   color: #7f241d;
   box-shadow: 0 10px 24px rgba(127, 36, 29, 0.08);
-  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .ratio-lock-button:hover {
-  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(127, 36, 29, 0.14);
 }
 
 .ratio-lock-button-unlocked {
@@ -616,6 +642,7 @@ function toggleRatioLock() {
 @media (max-width: 900px) {
   .ratio-editor {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .ratio-lock-button {
