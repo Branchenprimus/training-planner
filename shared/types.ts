@@ -1,4 +1,5 @@
 export type SportType = 'running' | 'cycling' | 'swimming'
+export type AppLanguage = 'en' | 'de'
 
 export type ActivityClassification = 'zone2' | 'zone3' | 'zone4' | 'interval' | 'unclassified'
 
@@ -15,10 +16,13 @@ export interface ZoneSettings {
 }
 
 export interface AppSettings {
+  language: AppLanguage
   runningMaxHr: number
   cyclingMaxHr: number
   runningZones: ZoneSettings
   cyclingZones: ZoneSettings
+  zone2SessionsBeforeInterval: number
+  intervalSessionsInBlock: number
 }
 
 export interface StravaAppSettings {
@@ -73,6 +77,7 @@ export interface ActivityAnalysisRecord {
   activityId: number
   formattedPerformance: string
   hrPercentOfMax: number | null
+  relativeEffort: number | null
   hrZoneLabel: string
   classification: ActivityClassification
   isEasySession: boolean
@@ -99,6 +104,7 @@ export interface ActivityListItem {
   stravaUrl: string
   formattedPerformance: string
   hrPercentOfMax: number | null
+  relativeEffort: number | null
   hrZoneLabel: string
   classification: ActivityClassification
   isEasySession: boolean
@@ -110,6 +116,8 @@ export interface CounterSummary {
   easyStreak: number
   remainingUntilInterval: number
   intervalDue: boolean
+  easyTarget: number
+  intervalTarget: number
   lastResetAt: string | null
 }
 
@@ -138,14 +146,17 @@ export interface ChartPoint {
 export interface ChartSeriesResponse {
   sport: Extract<SportType, 'running' | 'cycling'>
   range: '7d' | '30d' | '90d' | 'all'
+  performance: ChartPoint[]
   zone2: ChartPoint[]
   hrPerformance: ChartPoint[]
+  relativeEffort: ChartPoint[]
   distance: ChartPoint[]
   duration: ChartPoint[]
   elevation: ChartPoint[]
 }
 
 export interface ConnectionStatusResponse {
+  userEmail: string
   athlete: AthleteProfile | null
   syncStatus: SyncStatus
 }
@@ -172,4 +183,8 @@ export interface SettingsUpdateRequest extends AppSettings {
 
 export interface SyncNowResponse {
   syncStatus: SyncStatus
+}
+
+export interface DisconnectStravaResponse {
+  connectionStatus: ConnectionStatusResponse
 }

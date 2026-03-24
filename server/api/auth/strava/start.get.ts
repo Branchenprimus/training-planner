@@ -3,11 +3,14 @@ import { createError, setCookie, sendRedirect } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { initializeDatabase } from '../../../database/bootstrap'
 import { getEffectiveStravaCredentials } from '../../../repositories/settingsRepository'
+import { ensureUserScope, resolveCurrentUserEmail } from '../../../utils/currentUser'
 
 export default defineEventHandler((event) => {
   const config = useRuntimeConfig()
   const db = initializeDatabase()
-  const credentials = getEffectiveStravaCredentials(db, {
+  const userEmail = resolveCurrentUserEmail(event)
+  ensureUserScope(db, userEmail)
+  const credentials = getEffectiveStravaCredentials(db, userEmail, {
     stravaClientId: config.stravaClientId,
     stravaClientSecret: config.stravaClientSecret,
     stravaRedirectUri: config.stravaRedirectUri

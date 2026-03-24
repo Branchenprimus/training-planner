@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import type { PaginatedActivitiesResponse } from '~/shared/types'
 
-const page = ref(1)
+const { t } = useAppI18n()
 const pageSize = 20
-const { data, pending } = await useFetch<PaginatedActivitiesResponse>(() => `/api/activities/swimming?page=${page.value}&pageSize=${pageSize}`, { watch: [page] })
+const visibleCount = ref(pageSize)
+const { data, pending } = await useFetch<PaginatedActivitiesResponse>(() => `/api/activities/swimming?page=1&pageSize=${visibleCount.value}`, { watch: [visibleCount] })
+
+const canLoadMore = computed(() => (data.value?.items.length ?? 0) < (data.value?.total ?? 0))
+
+function loadMore() {
+  visibleCount.value += pageSize
+}
 </script>
 
 <template>
@@ -11,14 +18,16 @@ const { data, pending } = await useFetch<PaginatedActivitiesResponse>(() => `/ap
     <LoadingState v-if="pending && !data" />
     <EmptyState
       v-else-if="!data?.items.length"
-      title="No swimming activities"
-      description="Swims show up here independently and do not affect the running or cycling counters."
+      :title="t('noSwimmingActivities')"
+      :description="t('swimmingActivitiesDescription')"
     />
     <template v-else>
       <ActivityTile v-for="activity in data.items" :key="activity.id" :activity="activity" />
       <div class="inline-actions">
-        <button class="btn btn-secondary" :disabled="page === 1" @click="page -= 1">Previous</button>
-        <button class="btn btn-secondary" :disabled="page * pageSize >= (data.total ?? 0)" @click="page += 1">Next</button>
+        <button v-if="canLoadMore" class="btn btn-secondary" :disabled="pending" @click="loadMore">
+          {{ pending ? `${t('loading')}...` : t('loadMoreSwims') }}
+        </button>
+        <p v-else class="muted">{{ t('showingAllSwimming') }}</p>
       </div>
     </template>
   </section>

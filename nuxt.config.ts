@@ -16,6 +16,13 @@ export default defineNuxtConfig({
           name: 'description',
           content: 'Personal sports tracking dashboard for Strava activities.'
         }
+      ],
+      link: [
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          href: '/favicon.svg'
+        }
       ]
     }
   },
@@ -33,6 +40,7 @@ export default defineNuxtConfig({
     syncIntervalMinutes: 30,
     sessionCookieName: 'training_planner_state',
     sessionSecret: '',
+    defaultUserEmail: 'local@localhost',
     public: {
       appName: 'Training Planner'
     }

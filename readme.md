@@ -1,6 +1,6 @@
 # Training Planner
 
-Training Planner is a single-user Strava dashboard built for a Raspberry Pi 5 home server. It runs as a Nuxt 3 full-stack app, stores everything in local SQLite, analyzes heart-rate zones for running and cycling, and can be published safely through Cloudflare Tunnel plus Cloudflare Access.
+Training Planner is a Strava dashboard built for a Raspberry Pi 5 home server. It runs as a Nuxt 3 full-stack app, stores everything in local SQLite, analyzes heart-rate zones for running and cycling, and can be published safely through Cloudflare Tunnel plus Cloudflare Access.
 
 ## Stack
 
@@ -13,7 +13,7 @@ Training Planner is a single-user Strava dashboard built for a Raspberry Pi 5 ho
 
 ## Features
 
-- Strava OAuth browser login for a single user
+- Strava OAuth browser login per authenticated app user
 - Secure server-side token storage with refresh-token support
 - Automatic sync every 30 minutes
 - Initial backfill of the last 12 months
@@ -23,7 +23,8 @@ Training Planner is a single-user Strava dashboard built for a Raspberry Pi 5 ho
 - Swimming displayed but excluded from training-counter logic
 - Responsive dashboard with progress and HR/performance charts
 - Manual sync from the UI
-- Settings persisted in SQLite
+- Settings persisted in SQLite per authenticated email
+- Multi-tenant data isolation by Cloudflare Access email
 
 ## Project structure
 
@@ -77,6 +78,7 @@ Important variables:
 - `NUXT_STRAVA_REDIRECT_URI`: exact callback URL registered with Strava
 - `NUXT_SQLITE_PATH`: SQLite database path inside the container or locally
 - `NUXT_SYNC_INTERVAL_MINUTES`: scheduler interval, default `30`
+- `NUXT_DEFAULT_USER_EMAIL`: local-development fallback email when Cloudflare Access headers are not present
 - `NUXT_SESSION_SECRET`: random string for session-related state handling
 Nuxt runtime config uses the `NUXT_` environment prefix, so these values are available server-side without exposing secrets to the browser.
 
@@ -118,8 +120,8 @@ SQLite persistence is handled through the named volume `training_planner_data`, 
 
 - the SQLite database
 - Strava tokens
-- settings
-- imported activities
+- per-user settings
+- per-user imported activities
 
 You can inspect logs with:
 
@@ -134,6 +136,7 @@ docker compose logs -f app
 - Manual sync from the UI reuses the same import service as the scheduler.
 - Duplicate imports are prevented by the unique `source_activity_id` constraint.
 - Incremental sync fetches from roughly the latest stored activity date minus one day to safely catch edits without creating duplicates.
+- The scheduler scans all connected users and syncs each tenant independently.
 
 ## Heart-rate and counter rules
 
@@ -176,12 +179,12 @@ Then restart `cloudflared` on the host.
 
 ## Cloudflare Access recommendation
 
-Because this is a single-user dashboard, the recommended production posture is:
+Because this is a personal dashboard exposed to a small group of authenticated people, the recommended production posture is:
 
 1. Put the public hostname behind Cloudflare Access.
 2. Require your email identity provider or one-time PIN.
 3. Restrict access to your own email or a small allowlist.
-4. Keep Strava client secrets only in `.env`, never in frontend code.
+4. Keep Strava client secrets only in `.env` or the per-user server-side settings store, never in frontend code.
 
 This app assumes public exposure only behind Cloudflare Access or another equivalent gate.
 
@@ -199,10 +202,12 @@ This app assumes public exposure only behind Cloudflare Access or another equiva
 
 ## Technical notes and assumptions
 
-- This app is intentionally single-user and stores only one athlete profile and one OAuth token set.
+- Each authenticated Cloudflare Access email is treated as its own tenant.
+- Each tenant gets its own settings, Strava credentials, sync state, athlete link, and activity view.
+- Existing single-user data is automatically adopted by the first authenticated email that opens the upgraded app.
 - Strava activity normalization maps `Run`-style activities to running, `Ride`/`VirtualRide`/similar to cycling, and `Swim` to swimming.
 - For Raspberry Pi simplicity, the backend runs inside the same Nuxt deployment rather than as a separate service.
-- The sync scheduler uses a single in-process interval timer, which is appropriate for one container instance.
+- The sync scheduler uses a single in-process interval timer, which is appropriate for one container instance and iterates across all connected tenants.
 - Raw Strava activity payloads are stored in SQLite for debugging and auditing.
 - The charts use chronological connected line series; HR/performance charts display both metrics over time rather than as a scatter plot to keep the UI clear on mobile.
 

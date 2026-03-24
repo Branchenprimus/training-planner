@@ -5,6 +5,7 @@ import type { ChartSeriesResponse, ActivityListItem } from '../../../shared/type
 import { initializeDatabase } from '../../database/bootstrap'
 import { getChartActivities } from '../../repositories/activityRepository'
 import { resolveRangeStart } from '../../utils/dateRange'
+import { ensureUserScope, resolveCurrentUserEmail } from '../../utils/currentUser'
 
 export default defineEventHandler((event): ChartSeriesResponse => {
   const sport = event.context.params?.sport
@@ -15,12 +16,21 @@ export default defineEventHandler((event): ChartSeriesResponse => {
   const query = getQuery(event)
   const range = (typeof query.range === 'string' && DATE_RANGES.includes(query.range as DateRange) ? query.range : '30d') as DateRange
   const db = initializeDatabase()
+  const userEmail = resolveCurrentUserEmail(event)
+  ensureUserScope(db, userEmail)
   const startDate = resolveRangeStart(range)
-  const activities = getChartActivities(db, sport, startDate)
+  const activities = getChartActivities(db, userEmail, sport, startDate)
 
   return {
     sport,
     range,
+    performance: activities
+      .filter((activity: ActivityListItem) => performanceValueForChart(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps) !== null)
+      .map((activity: ActivityListItem) => ({
+        date: activity.startDate,
+        value: performanceValueForChart(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps) ?? 0,
+        label: activity.name
+      })),
     zone2: activities
       .filter((activity: ActivityListItem) => activity.classification === 'zone2')
       .map((activity: ActivityListItem) => ({
@@ -34,6 +44,13 @@ export default defineEventHandler((event): ChartSeriesResponse => {
         date: activity.startDate,
         value: performanceValueForChart(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps) ?? 0,
         secondaryValue: activity.averageHeartRate,
+        label: activity.name
+      })),
+    relativeEffort: activities
+      .filter((activity: ActivityListItem) => activity.relativeEffort !== null)
+      .map((activity: ActivityListItem) => ({
+        date: activity.startDate,
+        value: activity.relativeEffort ?? 0,
         label: activity.name
       })),
     distance: activities

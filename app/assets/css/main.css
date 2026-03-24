@@ -60,6 +60,30 @@ select {
   padding: 1.5rem 0 3rem;
 }
 
+@media (max-width: 640px) {
+  .page-shell {
+    width: min(100vw - 0.65rem, 100%);
+    padding: 0.8rem 0 2rem;
+  }
+
+  .section-card {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .stat-block {
+    padding: 0.85rem;
+  }
+}
+
 .page-grid,
 .dashboard-grid {
   display: grid;
@@ -184,6 +208,19 @@ select {
   grid-column: span 12;
 }
 
+@media (max-width: 960px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-span-4,
+  .grid-span-6,
+  .grid-span-8,
+  .grid-span-12 {
+    grid-column: span 1;
+  }
+}
+
 .stack {
   display: grid;
   gap: 1rem;
@@ -211,7 +248,8 @@ select {
   font-weight: 600;
 }
 
-.field input {
+.field input,
+.field select {
   border: 1px solid var(--border);
   background: white;
   border-radius: 14px;

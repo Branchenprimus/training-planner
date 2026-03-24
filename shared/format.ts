@@ -5,6 +5,7 @@ export type ChartMetric =
   | 'cyclingSpeed'
   | 'swimmingPace'
   | 'heartRate'
+  | 'relativeEffort'
   | 'distanceKm'
   | 'durationMinutes'
   | 'elevationMeters'
@@ -45,8 +46,8 @@ export function formatElevation(meters: number | null): string {
   return `${Math.round(meters)} m`
 }
 
-export function formatLocalizedDate(date: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+export function formatLocalizedDate(date: string, locale?: string): string {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short'
   }).format(new Date(date))
@@ -58,6 +59,14 @@ export function formatHr(hr: number | null): string {
   }
 
   return `${Math.round(hr)} bpm`
+}
+
+export function formatRelativeEffort(value: number | null): string {
+  if (value === null || !Number.isFinite(value) || value <= 0) {
+    return 'n/a'
+  }
+
+  return `${Math.round(value)}`
 }
 
 export function formatPerformanceBySport(sport: SportType, distanceMeters: number, durationSeconds: number, averageSpeedMps: number | null): string {
@@ -127,6 +136,10 @@ export function chartMetricAxisLabel(metric: ChartMetric): string {
     return 'Distance (km)'
   }
 
+  if (metric === 'relativeEffort') {
+    return 'Relative Effort'
+  }
+
   if (metric === 'durationMinutes') {
     return 'Duration (min)'
   }
@@ -153,6 +166,10 @@ export function formatChartMetricValue(metric: ChartMetric, value: number): stri
 
   if (metric === 'distanceKm') {
     return `${value.toFixed(value >= 10 ? 1 : 2)} km`
+  }
+
+  if (metric === 'relativeEffort') {
+    return `${Math.round(value)}`
   }
 
   if (metric === 'durationMinutes') {

@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import type { AthleteProfile, TokenRecord } from '../../shared/types'
 
 interface AthleteUpsertInput {
+  userEmail: string
   stravaAthleteId: number
   username: string | null
   firstname: string | null
@@ -43,9 +44,10 @@ function mapToken(row: Record<string, unknown>): TokenRecord {
 export function upsertAthlete(db: Database.Database, input: AthleteUpsertInput): AthleteProfile {
   const now = new Date().toISOString()
   db.prepare(`
-    INSERT INTO athletes (strava_athlete_id, username, firstname, lastname, profile_medium, created_at, updated_at)
-    VALUES (@stravaAthleteId, @username, @firstname, @lastname, @profileMedium, @now, @now)
+    INSERT INTO athletes (user_email, strava_athlete_id, username, firstname, lastname, profile_medium, created_at, updated_at)
+    VALUES (@userEmail, @stravaAthleteId, @username, @firstname, @lastname, @profileMedium, @now, @now)
     ON CONFLICT(strava_athlete_id) DO UPDATE SET
+      user_email = excluded.user_email,
       username = excluded.username,
       firstname = excluded.firstname,
       lastname = excluded.lastname,
@@ -53,12 +55,12 @@ export function upsertAthlete(db: Database.Database, input: AthleteUpsertInput):
       updated_at = excluded.updated_at
   `).run({ ...input, now })
 
-  const row = db.prepare('SELECT * FROM athletes WHERE strava_athlete_id = ?').get(input.stravaAthleteId) as Record<string, unknown>
+  const row = db.prepare('SELECT * FROM athletes WHERE user_email = ?').get(input.userEmail) as Record<string, unknown>
   return mapAthlete(row)
 }
 
-export function getAthlete(db: Database.Database): AthleteProfile | null {
-  const row = db.prepare('SELECT * FROM athletes ORDER BY id LIMIT 1').get() as Record<string, unknown> | undefined
+export function getAthlete(db: Database.Database, userEmail: string): AthleteProfile | null {
+  const row = db.prepare('SELECT * FROM athletes WHERE user_email = ? ORDER BY id LIMIT 1').get(userEmail) as Record<string, unknown> | undefined
   return row ? mapAthlete(row) : null
 }
 
@@ -78,7 +80,36 @@ export function upsertToken(db: Database.Database, input: TokenUpsertInput): Tok
   return mapToken(row)
 }
 
-export function getToken(db: Database.Database): TokenRecord | null {
-  const row = db.prepare('SELECT * FROM oauth_tokens ORDER BY athlete_id LIMIT 1').get() as Record<string, unknown> | undefined
+export function getToken(db: Database.Database, userEmail: string): TokenRecord | null {
+  const row = db.prepare(`
+    SELECT t.*
+    FROM oauth_tokens t
+    JOIN athletes a ON a.id = t.athlete_id
+    WHERE a.user_email = ?
+    ORDER BY t.athlete_id
+    LIMIT 1
+  `).get(userEmail) as Record<string, unknown> | undefined
   return row ? mapToken(row) : null
+}
+
+export function deleteToken(db: Database.Database, userEmail: string): void {
+  db.prepare(`
+    DELETE FROM oauth_tokens
+    WHERE athlete_id IN (
+      SELECT athlete.id
+      FROM athletes athlete
+      WHERE athlete.user_email = ?
+    )
+  `).run(userEmail)
+}
+
+export function listConnectedUserEmails(db: Database.Database): string[] {
+  const rows = db.prepare(`
+    SELECT DISTINCT a.user_email
+    FROM athletes a
+    JOIN oauth_tokens t ON t.athlete_id = a.id
+    ORDER BY a.user_email ASC
+  `).all() as Array<{ user_email: string }>
+
+  return rows.map((row) => row.user_email)
 }

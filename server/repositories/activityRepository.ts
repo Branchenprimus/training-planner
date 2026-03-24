@@ -38,6 +38,7 @@ function mapActivityRow(row: Record<string, unknown>): ActivityListItem {
     stravaUrl: String(row.strava_url),
     formattedPerformance: String(row.formatted_performance),
     hrPercentOfMax: row.hr_percent_of_max === null ? null : Number(row.hr_percent_of_max),
+    relativeEffort: row.relative_effort === null ? null : Number(row.relative_effort),
     hrZoneLabel: String(row.hr_zone_label),
     classification: row.classification as ActivityClassification,
     isEasySession: Boolean(row.is_easy_session),
@@ -83,16 +84,17 @@ export function upsertActivityAnalysis(db: Database.Database, input: UpsertAnaly
   const now = new Date().toISOString()
   db.prepare(`
     INSERT INTO activity_analysis (
-      activity_id, formatted_performance, hr_percent_of_max, hr_zone_label, classification,
+      activity_id, formatted_performance, hr_percent_of_max, relative_effort, hr_zone_label, classification,
       is_easy_session, is_hard_session, affects_running_counter, affects_cycling_counter, created_at, updated_at
     )
     VALUES (
-      @activityId, @formattedPerformance, @hrPercentOfMax, @hrZoneLabel, @classification,
+      @activityId, @formattedPerformance, @hrPercentOfMax, @relativeEffort, @hrZoneLabel, @classification,
       @isEasySession, @isHardSession, @affectsRunningCounter, @affectsCyclingCounter, @now, @now
     )
     ON CONFLICT(activity_id) DO UPDATE SET
       formatted_performance = excluded.formatted_performance,
       hr_percent_of_max = excluded.hr_percent_of_max,
+      relative_effort = excluded.relative_effort,
       hr_zone_label = excluded.hr_zone_label,
       classification = excluded.classification,
       is_easy_session = excluded.is_easy_session,
@@ -110,72 +112,136 @@ export function upsertActivityAnalysis(db: Database.Database, input: UpsertAnaly
   })
 }
 
-export function getActivitiesBySport(db: Database.Database, sport: SportType, page: number, pageSize: number): { total: number; items: ActivityListItem[] } {
-  const total = Number((db.prepare('SELECT COUNT(*) as count FROM activities WHERE sport = ?').get(sport) as { count: number }).count)
-  const rows = db.prepare(`
-    SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
-    FROM activities a
-    JOIN activity_analysis aa ON aa.activity_id = a.id
-    WHERE a.sport = ?
-    ORDER BY a.start_date DESC
-    LIMIT ? OFFSET ?
-  `).all(sport, pageSize, (page - 1) * pageSize) as Record<string, unknown>[]
+export function getActivitiesBySport(
+  db: Database.Database,
+  userEmail: string,
+  sport: SportType,
+  page: number,
+  pageSize: number,
+  startDate?: string
+): { total: number; items: ActivityListItem[] } {
+  const total = startDate
+    ? Number((
+        db.prepare(`
+          SELECT COUNT(*) AS count
+          FROM activities activity
+          JOIN athletes athlete ON athlete.id = activity.athlete_id
+          WHERE athlete.user_email = ? AND activity.sport = ? AND activity.start_date >= ?
+        `).get(userEmail, sport, startDate) as { count: number }
+      ).count)
+    : Number((
+        db.prepare(`
+          SELECT COUNT(*) AS count
+          FROM activities activity
+          JOIN athletes athlete ON athlete.id = activity.athlete_id
+          WHERE athlete.user_email = ? AND activity.sport = ?
+        `).get(userEmail, sport) as { count: number }
+      ).count)
+
+  const rows = startDate
+    ? db.prepare(`
+        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+        FROM activities a
+        JOIN athletes athlete ON athlete.id = a.athlete_id
+        JOIN activity_analysis aa ON aa.activity_id = a.id
+        WHERE athlete.user_email = ? AND a.sport = ? AND a.start_date >= ?
+        ORDER BY a.start_date DESC
+        LIMIT ? OFFSET ?
+      `).all(userEmail, sport, startDate, pageSize, (page - 1) * pageSize)
+    : db.prepare(`
+        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+        FROM activities a
+        JOIN athletes athlete ON athlete.id = a.athlete_id
+        JOIN activity_analysis aa ON aa.activity_id = a.id
+        WHERE athlete.user_email = ? AND a.sport = ?
+        ORDER BY a.start_date DESC
+        LIMIT ? OFFSET ?
+      `).all(userEmail, sport, pageSize, (page - 1) * pageSize)
 
   return {
     total,
-    items: rows.map(mapActivityRow)
+    items: (rows as Record<string, unknown>[]).map(mapActivityRow)
   }
 }
 
-export function getRecentActivities(db: Database.Database, limit: number): ActivityListItem[] {
-  const rows = db.prepare(`
-    SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
-    FROM activities a
-    JOIN activity_analysis aa ON aa.activity_id = a.id
-    ORDER BY a.start_date DESC
-    LIMIT ?
-  `).all(limit) as Record<string, unknown>[]
-
-  return rows.map(mapActivityRow)
-}
-
-export function getActivitiesForCounter(db: Database.Database, sport: Extract<SportType, 'running' | 'cycling'>): ActivityListItem[] {
-  const rows = db.prepare(`
-    SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
-    FROM activities a
-    JOIN activity_analysis aa ON aa.activity_id = a.id
-    WHERE a.sport = ?
-    ORDER BY a.start_date DESC
-  `).all(sport) as Record<string, unknown>[]
-
-  return rows.map(mapActivityRow)
-}
-
-export function getChartActivities(db: Database.Database, sport: Extract<SportType, 'running' | 'cycling'>, startDate?: string): ActivityListItem[] {
+export function getRecentActivities(db: Database.Database, userEmail: string, limit: number, startDate?: string): ActivityListItem[] {
   const rows = startDate
     ? db.prepare(`
-        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
         FROM activities a
+        JOIN athletes athlete ON athlete.id = a.athlete_id
         JOIN activity_analysis aa ON aa.activity_id = a.id
-        WHERE a.sport = ? AND a.start_date >= ?
-        ORDER BY a.start_date ASC
-      `).all(sport, startDate)
+        WHERE athlete.user_email = ? AND a.start_date >= ?
+        ORDER BY a.start_date DESC
+        LIMIT ?
+      `).all(userEmail, startDate, limit)
     : db.prepare(`
-        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
         FROM activities a
+        JOIN athletes athlete ON athlete.id = a.athlete_id
         JOIN activity_analysis aa ON aa.activity_id = a.id
-        WHERE a.sport = ?
-        ORDER BY a.start_date ASC
-      `).all(sport)
+        WHERE athlete.user_email = ?
+        ORDER BY a.start_date DESC
+        LIMIT ?
+      `).all(userEmail, limit) as Record<string, unknown>[]
 
   return (rows as Record<string, unknown>[]).map(mapActivityRow)
 }
 
-export function getLatestActivityDate(db: Database.Database): string | null {
-  const row = db.prepare('SELECT start_date FROM activities ORDER BY start_date DESC LIMIT 1').get() as { start_date: string } | undefined
+export function getActivitiesForCounter(db: Database.Database, userEmail: string, sport: Extract<SportType, 'running' | 'cycling'>): ActivityListItem[] {
+  const rows = db.prepare(`
+    SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+    FROM activities a
+    JOIN athletes athlete ON athlete.id = a.athlete_id
+    JOIN activity_analysis aa ON aa.activity_id = a.id
+    WHERE athlete.user_email = ? AND a.sport = ?
+    ORDER BY a.start_date DESC
+  `).all(userEmail, sport) as Record<string, unknown>[]
+
+  return rows.map(mapActivityRow)
+}
+
+export function getChartActivities(db: Database.Database, userEmail: string, sport: Extract<SportType, 'running' | 'cycling'>, startDate?: string): ActivityListItem[] {
+  const rows = startDate
+    ? db.prepare(`
+        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+        FROM activities a
+        JOIN athletes athlete ON athlete.id = a.athlete_id
+        JOIN activity_analysis aa ON aa.activity_id = a.id
+        WHERE athlete.user_email = ? AND a.sport = ? AND a.start_date >= ?
+        ORDER BY a.start_date ASC
+      `).all(userEmail, sport, startDate)
+    : db.prepare(`
+        SELECT a.*, aa.formatted_performance, aa.hr_percent_of_max, aa.relative_effort, aa.hr_zone_label, aa.classification, aa.is_easy_session, aa.is_hard_session
+        FROM activities a
+        JOIN athletes athlete ON athlete.id = a.athlete_id
+        JOIN activity_analysis aa ON aa.activity_id = a.id
+        WHERE athlete.user_email = ? AND a.sport = ?
+        ORDER BY a.start_date ASC
+      `).all(userEmail, sport)
+
+  return (rows as Record<string, unknown>[]).map(mapActivityRow)
+}
+
+export function getLatestActivityDate(db: Database.Database, userEmail: string): string | null {
+  const row = db.prepare(`
+    SELECT activity.start_date
+    FROM activities activity
+    JOIN athletes athlete ON athlete.id = activity.athlete_id
+    WHERE athlete.user_email = ?
+    ORDER BY activity.start_date DESC
+    LIMIT 1
+  `).get(userEmail) as { start_date: string } | undefined
   return row?.start_date ?? null
 }
 
-export function getActivityCount(db: Database.Database): number {
-  return Number((db.prepare('SELECT COUNT(*) as count FROM activities').get() as { count: number }).count)
+export function getActivityCount(db: Database.Database, userEmail: string): number {
+  return Number((
+    db.prepare(`
+      SELECT COUNT(*) as count
+      FROM activities activity
+      JOIN athletes athlete ON athlete.id = activity.athlete_id
+      WHERE athlete.user_email = ?
+    `).get(userEmail) as { count: number }
+  ).count)
 }

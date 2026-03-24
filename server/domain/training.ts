@@ -1,4 +1,3 @@
-import { COUNTER_TARGET } from '../../shared/constants'
 import type { ActivityListItem, CounterSummary } from '../../shared/types'
 
 export function deriveTrainingFlags(sport: ActivityListItem['sport'], classification: ActivityListItem['classification']) {
@@ -15,7 +14,12 @@ export function deriveTrainingFlags(sport: ActivityListItem['sport'], classifica
   }
 }
 
-export function buildCounterSummary(sport: CounterSummary['sport'], activities: ActivityListItem[]): CounterSummary {
+export function buildCounterSummary(
+  sport: CounterSummary['sport'],
+  activities: ActivityListItem[],
+  easyTarget: number,
+  intervalTarget: number
+): CounterSummary {
   let easyStreak = 0
   let lastResetAt: string | null = null
 
@@ -34,13 +38,15 @@ export function buildCounterSummary(sport: CounterSummary['sport'], activities: 
     }
   }
 
-  const remainingUntilInterval = Math.max(COUNTER_TARGET - easyStreak, 0)
+  const remainingUntilInterval = Math.max(easyTarget - easyStreak, 0)
 
   return {
     sport,
     easyStreak,
     remainingUntilInterval,
-    intervalDue: easyStreak >= COUNTER_TARGET,
+    intervalDue: easyStreak >= easyTarget,
+    easyTarget,
+    intervalTarget,
     lastResetAt
   }
 }

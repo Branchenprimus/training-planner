@@ -34,27 +34,57 @@ function getStoredJson<T>(db: Database.Database, key: string): T | null {
   return JSON.parse(row.value) as T
 }
 
-export function getSettings(db: Database.Database): AppSettings {
-  const value = getStoredJson<AppSettings>(db, 'app_settings')
-  if (!value) {
-    return DEFAULT_SETTINGS
+function getUserStoredJson<T>(db: Database.Database, userEmail: string, key: string): T | null {
+  const row = db.prepare('SELECT value FROM user_settings WHERE user_email = ? AND key = ?').get(userEmail, key) as { value: string } | undefined
+  if (!row) {
+    return null
   }
 
-  return value
+  return JSON.parse(row.value) as T
 }
 
-export function saveSettings(db: Database.Database, settings: AppSettings): AppSettings {
+function normalizeSettings(value: AppSettings | null | undefined): AppSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...value,
+    runningZones: {
+      ...DEFAULT_SETTINGS.runningZones,
+      ...value?.runningZones,
+      zone2: { ...DEFAULT_SETTINGS.runningZones.zone2, ...value?.runningZones?.zone2 },
+      zone3: { ...DEFAULT_SETTINGS.runningZones.zone3, ...value?.runningZones?.zone3 },
+      zone4: { ...DEFAULT_SETTINGS.runningZones.zone4, ...value?.runningZones?.zone4 },
+      interval: { ...DEFAULT_SETTINGS.runningZones.interval, ...value?.runningZones?.interval }
+    },
+    cyclingZones: {
+      ...DEFAULT_SETTINGS.cyclingZones,
+      ...value?.cyclingZones,
+      zone2: { ...DEFAULT_SETTINGS.cyclingZones.zone2, ...value?.cyclingZones?.zone2 },
+      zone3: { ...DEFAULT_SETTINGS.cyclingZones.zone3, ...value?.cyclingZones?.zone3 },
+      zone4: { ...DEFAULT_SETTINGS.cyclingZones.zone4, ...value?.cyclingZones?.zone4 },
+      interval: { ...DEFAULT_SETTINGS.cyclingZones.interval, ...value?.cyclingZones?.interval }
+    }
+  }
+}
+
+export function getSettings(db: Database.Database, userEmail: string): AppSettings {
+  const value = getUserStoredJson<AppSettings>(db, userEmail, 'app_settings') ?? getStoredJson<AppSettings>(db, 'app_settings')
+  return normalizeSettings(value)
+}
+
+export function saveSettings(db: Database.Database, userEmail: string, settings: AppSettings): AppSettings {
+  const normalized = normalizeSettings(settings)
   db.prepare(`
-    INSERT INTO settings (key, value, updated_at)
-    VALUES ('app_settings', ?, ?)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-  `).run(JSON.stringify(settings), new Date().toISOString())
+    INSERT INTO user_settings (user_email, key, value, updated_at)
+    VALUES (?, 'app_settings', ?, ?)
+    ON CONFLICT(user_email, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(userEmail, JSON.stringify(normalized), new Date().toISOString())
 
-  return settings
+  return normalized
 }
 
-export function getEffectiveStravaCredentials(db: Database.Database, runtimeConfig: RuntimeStravaConfig): StoredStravaCredentials | null {
-  const stored = getStoredJson<StoredStravaCredentials>(db, 'strava_app_credentials')
+export function getEffectiveStravaCredentials(db: Database.Database, userEmail: string, runtimeConfig: RuntimeStravaConfig): StoredStravaCredentials | null {
+  const stored = getUserStoredJson<StoredStravaCredentials>(db, userEmail, 'strava_app_credentials')
+    ?? getStoredJson<StoredStravaCredentials>(db, 'strava_app_credentials')
   const clientId = normalizeText(stored?.clientId ?? runtimeConfig.stravaClientId)
   const clientSecret = normalizeText(stored?.clientSecret ?? runtimeConfig.stravaClientSecret)
 
@@ -68,8 +98,8 @@ export function getEffectiveStravaCredentials(db: Database.Database, runtimeConf
   }
 }
 
-export function getStravaAppSettings(db: Database.Database, runtimeConfig: RuntimeStravaConfig): StravaAppSettings {
-  const credentials = getEffectiveStravaCredentials(db, runtimeConfig)
+export function getStravaAppSettings(db: Database.Database, userEmail: string, runtimeConfig: RuntimeStravaConfig): StravaAppSettings {
+  const credentials = getEffectiveStravaCredentials(db, userEmail, runtimeConfig)
   const runtimeClientId = normalizeText(runtimeConfig.stravaClientId)
   const runtimeClientSecret = normalizeText(runtimeConfig.stravaClientSecret)
   const clientId = credentials?.clientId ?? runtimeClientId
@@ -92,10 +122,11 @@ export function getStravaAppSettings(db: Database.Database, runtimeConfig: Runti
 
 export function saveStravaCredentials(
   db: Database.Database,
+  userEmail: string,
   input: { clientId: string; clientSecret?: string },
   runtimeConfig: RuntimeStravaConfig
 ): StoredStravaCredentials {
-  const current = getEffectiveStravaCredentials(db, runtimeConfig)
+  const current = getEffectiveStravaCredentials(db, userEmail, runtimeConfig)
   const clientId = normalizeText(input.clientId) || current?.clientId || normalizeText(runtimeConfig.stravaClientId)
   const clientSecret = normalizeText(input.clientSecret) || current?.clientSecret || normalizeText(runtimeConfig.stravaClientSecret)
 
@@ -109,10 +140,10 @@ export function saveStravaCredentials(
   }
 
   db.prepare(`
-    INSERT INTO settings (key, value, updated_at)
-    VALUES ('strava_app_credentials', ?, ?)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-  `).run(JSON.stringify(credentials), new Date().toISOString())
+    INSERT INTO user_settings (user_email, key, value, updated_at)
+    VALUES (?, 'strava_app_credentials', ?, ?)
+    ON CONFLICT(user_email, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(userEmail, JSON.stringify(credentials), new Date().toISOString())
 
   return credentials
 }

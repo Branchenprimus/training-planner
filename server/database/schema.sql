@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS athletes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_email TEXT NOT NULL,
   strava_athlete_id INTEGER NOT NULL UNIQUE,
   username TEXT,
   firstname TEXT,
@@ -23,6 +24,14 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_email TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_email, key)
 );
 
 CREATE TABLE IF NOT EXISTS activities (
@@ -54,6 +63,8 @@ CREATE TABLE IF NOT EXISTS activity_analysis (
   activity_id INTEGER PRIMARY KEY,
   formatted_performance TEXT NOT NULL,
   hr_percent_of_max REAL,
+  intensity_score REAL,
+  relative_effort REAL,
   hr_zone_label TEXT NOT NULL,
   classification TEXT NOT NULL,
   is_easy_session INTEGER NOT NULL DEFAULT 0,
@@ -67,6 +78,18 @@ CREATE TABLE IF NOT EXISTS activity_analysis (
 
 CREATE TABLE IF NOT EXISTS sync_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
+  connected INTEGER NOT NULL DEFAULT 0,
+  is_syncing INTEGER NOT NULL DEFAULT 0,
+  last_sync_at TEXT,
+  last_sync_status TEXT NOT NULL DEFAULT 'idle',
+  last_sync_message TEXT,
+  imported_activities INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_sync_state (
+  user_email TEXT PRIMARY KEY,
   connected INTEGER NOT NULL DEFAULT 0,
   is_syncing INTEGER NOT NULL DEFAULT 0,
   last_sync_at TEXT,

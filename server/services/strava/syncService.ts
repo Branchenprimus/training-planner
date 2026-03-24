@@ -1,17 +1,22 @@
 import { createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { initializeDatabase } from '../../database/bootstrap'
-import { getActivityCount, getChartActivities, getLatestActivityDate, upsertActivity, upsertActivityAnalysis } from '../../repositories/activityRepository'
-import { getAthlete, getToken, upsertAthlete, upsertToken } from '../../repositories/athleteRepository'
+import { getActivityCount, getLatestActivityDate, upsertActivity, upsertActivityAnalysis } from '../../repositories/activityRepository'
+import { deleteToken, getAthlete, getToken, listConnectedUserEmails, upsertAthlete, upsertToken } from '../../repositories/athleteRepository'
 import { getSettings } from '../../repositories/settingsRepository'
 import { getSyncStatus, updateSyncStatus } from '../../repositories/syncRepository'
-import { classifyHrZone } from '../../domain/hr'
+import { classifyHrZone, computeRelativeEffort, type RelativeEffortStreams } from '../../domain/hr'
 import { deriveTrainingFlags } from '../../domain/training'
 import { formatPerformanceBySport } from '../../../shared/format'
 import type { SportType, SyncStatus } from '../../../shared/types'
-import { exchangeCodeForToken, fetchStravaActivities, refreshStravaToken, type StravaActivity } from './client'
+import { exchangeCodeForToken, fetchStravaActivities, fetchStravaActivityStreams, refreshStravaToken, type StravaActivity } from './client'
 
-let syncPromise: Promise<SyncStatus> | null = null
+const syncPromises = new Map<string, Promise<SyncStatus>>()
+
+interface StoredActivityPayload {
+  activity: StravaActivity
+  streams: RelativeEffortStreams | null
+}
 
 function normalizeSport(activity: StravaActivity): SportType | null {
   const value = activity.sport_type || activity.type
@@ -32,10 +37,10 @@ function normalizeSport(activity: StravaActivity): SportType | null {
   return null
 }
 
-async function ensureValidToken() {
+async function ensureValidToken(userEmail: string) {
   const db = initializeDatabase()
-  const athlete = getAthlete(db)
-  const token = getToken(db)
+  const athlete = getAthlete(db, userEmail)
+  const token = getToken(db, userEmail)
 
   if (!athlete || !token) {
     throw createError({
@@ -53,8 +58,9 @@ async function ensureValidToken() {
     }
   }
 
-  const refreshed = await refreshStravaToken(token.refreshToken)
+  const refreshed = await refreshStravaToken(token.refreshToken, userEmail)
   const updatedAthlete = upsertAthlete(db, {
+    userEmail,
     stravaAthleteId: refreshed.athlete.id,
     username: refreshed.athlete.username,
     firstname: refreshed.athlete.firstname,
@@ -75,11 +81,12 @@ async function ensureValidToken() {
   }
 }
 
-export async function connectStravaAccount(code: string): Promise<SyncStatus> {
+export async function connectStravaAccount(code: string, userEmail: string): Promise<SyncStatus> {
   const db = initializeDatabase()
-  const tokenResponse = await exchangeCodeForToken(code)
+  const tokenResponse = await exchangeCodeForToken(code, userEmail)
 
   const athlete = upsertAthlete(db, {
+    userEmail,
     stravaAthleteId: tokenResponse.athlete.id,
     username: tokenResponse.athlete.username,
     firstname: tokenResponse.athlete.firstname,
@@ -94,25 +101,60 @@ export async function connectStravaAccount(code: string): Promise<SyncStatus> {
     expiresAt: new Date(tokenResponse.expires_at * 1000).toISOString()
   })
 
-  updateSyncStatus(db, {
+  updateSyncStatus(db, userEmail, {
     connected: true,
     lastSyncStatus: 'idle',
     lastSyncMessage: 'Strava connected successfully.'
   })
 
-  return await runStravaSync('initial-connect')
+  return await runStravaSync('initial-connect', userEmail)
 }
 
-function buildAfterTimestamp(): number | undefined {
+async function fetchRelativeEffortStreams(
+  accessToken: string,
+  activity: StravaActivity,
+  sport: SportType
+): Promise<RelativeEffortStreams | null> {
+  if (sport === 'swimming' || !activity.average_heartrate) {
+    return null
+  }
+
+  try {
+    const streams = await fetchStravaActivityStreams(accessToken, activity.id)
+    const time = streams.time?.data ?? []
+    const heartrate = streams.heartrate?.data ?? []
+    if (!time.length || !heartrate.length) {
+      return null
+    }
+
+    return {
+      time: time.map((value) => Number(value)).filter(Number.isFinite),
+      heartrate: heartrate.map((value) => Number(value)).filter(Number.isFinite)
+    }
+  } catch {
+    return null
+  }
+}
+
+function serializeActivityPayload(activity: StravaActivity, streams: RelativeEffortStreams | null): string {
+  const payload: StoredActivityPayload = {
+    activity,
+    streams
+  }
+
+  return JSON.stringify(payload)
+}
+
+function buildAfterTimestamp(userEmail: string): number | undefined {
   const db = initializeDatabase()
-  const activityCount = getActivityCount(db)
+  const activityCount = getActivityCount(db, userEmail)
   if (activityCount === 0) {
     const yearAgo = new Date()
     yearAgo.setFullYear(yearAgo.getFullYear() - 1)
     return Math.floor(yearAgo.getTime() / 1000)
   }
 
-  const latest = getLatestActivityDate(db)
+  const latest = getLatestActivityDate(db, userEmail)
   if (!latest) {
     return undefined
   }
@@ -122,25 +164,26 @@ function buildAfterTimestamp(): number | undefined {
   return Math.floor(afterDate.getTime() / 1000)
 }
 
-export async function runStravaSync(reason = 'manual'): Promise<SyncStatus> {
-  if (syncPromise) {
-    return await syncPromise
+export async function runStravaSync(reason = 'manual', userEmail: string): Promise<SyncStatus> {
+  const existingPromise = syncPromises.get(userEmail)
+  if (existingPromise) {
+    return await existingPromise
   }
 
-  syncPromise = (async () => {
+  const syncPromise = (async () => {
     const db = initializeDatabase()
-    const current = getSyncStatus(db)
-    updateSyncStatus(db, {
+    const current = getSyncStatus(db, userEmail)
+    updateSyncStatus(db, userEmail, {
       ...current,
-      connected: Boolean(getAthlete(db) && getToken(db)),
+      connected: Boolean(getAthlete(db, userEmail) && getToken(db, userEmail)),
       isSyncing: true,
       lastSyncMessage: `Sync started (${reason}).`
     })
 
     try {
-      const { athlete, accessToken } = await ensureValidToken()
-      const settings = getSettings(db)
-      const after = buildAfterTimestamp()
+      const { athlete, accessToken } = await ensureValidToken(userEmail)
+      const settings = getSettings(db, userEmail)
+      const after = buildAfterTimestamp(userEmail)
 
       let page = 1
       let processed = 0
@@ -158,6 +201,8 @@ export async function runStravaSync(reason = 'manual'): Promise<SyncStatus> {
             continue
           }
 
+          const relativeEffortStreams = await fetchRelativeEffortStreams(accessToken, activity, sport)
+
           const activityId = upsertActivity(db, {
             athleteId: athlete.id,
             sourceActivityId: activity.id,
@@ -173,7 +218,7 @@ export async function runStravaSync(reason = 'manual'): Promise<SyncStatus> {
             elevationGainMeters: activity.total_elevation_gain,
             averageSpeedMps: activity.average_speed,
             stravaUrl: `https://www.strava.com/activities/${activity.id}`,
-            rawPayload: JSON.stringify(activity)
+            rawPayload: serializeActivityPayload(activity, relativeEffortStreams)
           })
 
           const hr = classifyHrZone(settings, sport, activity.average_heartrate)
@@ -182,6 +227,7 @@ export async function runStravaSync(reason = 'manual'): Promise<SyncStatus> {
             activityId,
             formattedPerformance: formatPerformanceBySport(sport, activity.distance, activity.elapsed_time, activity.average_speed),
             hrPercentOfMax: hr.hrPercentOfMax,
+            relativeEffort: computeRelativeEffort(settings, sport, relativeEffortStreams),
             hrZoneLabel: hr.hrZoneLabel,
             classification: hr.classification,
             isEasySession: training.isEasySession,
@@ -202,7 +248,7 @@ export async function runStravaSync(reason = 'manual'): Promise<SyncStatus> {
         page += 1
       }
 
-      return updateSyncStatus(db, {
+      return updateSyncStatus(db, userEmail, {
         connected: true,
         isSyncing: false,
         lastSyncAt: new Date().toISOString(),
@@ -212,18 +258,39 @@ export async function runStravaSync(reason = 'manual'): Promise<SyncStatus> {
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown sync error'
-      return updateSyncStatus(db, {
-        connected: Boolean(getAthlete(db) && getToken(db)),
+      return updateSyncStatus(db, userEmail, {
+        connected: Boolean(getAthlete(db, userEmail) && getToken(db, userEmail)),
         isSyncing: false,
         lastSyncStatus: 'error',
         lastSyncMessage: message
       })
     } finally {
-      syncPromise = null
+      syncPromises.delete(userEmail)
     }
   })()
 
+  syncPromises.set(userEmail, syncPromise)
   return await syncPromise
+}
+
+export function disconnectStravaAccount(userEmail: string): SyncStatus {
+  if (syncPromises.has(userEmail)) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'A sync is currently in progress. Please try disconnecting again in a moment.'
+    })
+  }
+
+  const db = initializeDatabase()
+  deleteToken(db, userEmail)
+
+  return updateSyncStatus(db, userEmail, {
+    connected: false,
+    isSyncing: false,
+    lastSyncStatus: 'idle',
+    lastSyncMessage: 'Strava disconnected.',
+    importedActivities: 0
+  })
 }
 
 let schedulerStarted = false
@@ -237,11 +304,13 @@ export function startSyncScheduler(): void {
   const intervalMs = Number(config.syncIntervalMinutes) * 60 * 1000
   const timer = setInterval(() => {
     const db = initializeDatabase()
-    if (!getAthlete(db) || !getToken(db)) {
-      return
-    }
+    for (const userEmail of listConnectedUserEmails(db)) {
+      if (!getAthlete(db, userEmail) || !getToken(db, userEmail)) {
+        continue
+      }
 
-    void runStravaSync('scheduled')
+      void runStravaSync('scheduled', userEmail)
+    }
   }, intervalMs)
 
   timer.unref?.()

@@ -11,6 +11,7 @@ export const DATE_RANGES = ['7d', '30d', '90d', 'all'] as const
 export type DateRange = (typeof DATE_RANGES)[number]
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  language: 'en',
   runningMaxHr: 190,
   cyclingMaxHr: 180,
   runningZones: {
@@ -24,7 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     zone3: { min: 76, max: 84 },
     zone4: { min: 85, max: 90 },
     interval: { min: 91, max: 100 }
-  }
+  },
+  zone2SessionsBeforeInterval: 9,
+  intervalSessionsInBlock: 1
 }
-
-export const COUNTER_TARGET = 9

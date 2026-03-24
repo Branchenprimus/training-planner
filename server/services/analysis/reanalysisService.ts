@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { classifyHrZone } from '../../domain/hr'
+import { classifyHrZone, computeRelativeEffort, getStoredRelativeEffortStreams } from '../../domain/hr'
 import { deriveTrainingFlags } from '../../domain/training'
 import { upsertActivityAnalysis } from '../../repositories/activityRepository'
 import { formatPerformanceBySport } from '../../../shared/format'
@@ -12,20 +12,26 @@ interface ActivityRow {
   duration_seconds: number
   average_speed_mps: number | null
   average_heart_rate: number | null
+  elevation_gain_meters: number | null
+  raw_payload: string | null
 }
 
-export function reanalyzeActivities(db: Database.Database, settings: AppSettings): number {
+export function reanalyzeActivities(db: Database.Database, userEmail: string, settings: AppSettings): number {
   const activities = db.prepare(`
     SELECT
-      id,
-      sport,
-      distance_meters,
-      duration_seconds,
-      average_speed_mps,
-      average_heart_rate
-    FROM activities
-    ORDER BY start_date ASC
-  `).all() as ActivityRow[]
+      activity.id,
+      activity.sport,
+      activity.distance_meters,
+      activity.duration_seconds,
+      activity.average_speed_mps,
+      activity.average_heart_rate,
+      activity.elevation_gain_meters,
+      activity.raw_payload
+    FROM activities activity
+    JOIN athletes athlete ON athlete.id = activity.athlete_id
+    WHERE athlete.user_email = ?
+    ORDER BY activity.start_date ASC
+  `).all(userEmail) as ActivityRow[]
 
   const transaction = db.transaction((rows: ActivityRow[]) => {
     for (const activity of rows) {
@@ -41,6 +47,11 @@ export function reanalyzeActivities(db: Database.Database, settings: AppSettings
           activity.average_speed_mps
         ),
         hrPercentOfMax: hr.hrPercentOfMax,
+        relativeEffort: computeRelativeEffort(
+          settings,
+          activity.sport,
+          getStoredRelativeEffortStreams(activity.raw_payload)
+        ),
         hrZoneLabel: hr.hrZoneLabel,
         classification: hr.classification,
         isEasySession: training.isEasySession,

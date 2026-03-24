@@ -1,5 +1,24 @@
 import type { ActivityClassification, AppSettings, SportType, ZoneSettings } from '../../shared/types'
 
+export interface RelativeEffortStreams {
+  time: number[]
+  heartrate: number[]
+}
+
+interface StoredRelativeEffortPayload {
+  streams?: Partial<RelativeEffortStreams> | null
+}
+
+const RELATIVE_EFFORT_ZONE_WEIGHTS = {
+  z1: 1,
+  z2: 2,
+  z3: 3,
+  z4: 5,
+  z5: 8
+} as const
+
+const RELATIVE_EFFORT_NORMALIZATION_DIVISOR = 120
+
 export function getSportZoneSettings(settings: AppSettings, sport: SportType): ZoneSettings | null {
   if (sport === 'running') {
     return settings.runningZones
@@ -30,6 +49,91 @@ export function computeHrPercentOfMax(averageHr: number | null, maxHr: number | 
   }
 
   return Number(((averageHr / maxHr) * 100).toFixed(1))
+}
+
+function getRelativeEffortZoneWeight(hrPercent: number, zones: ZoneSettings): number {
+  if (hrPercent < zones.zone2.min) {
+    return RELATIVE_EFFORT_ZONE_WEIGHTS.z1
+  }
+
+  if (hrPercent <= zones.zone2.max) {
+    return RELATIVE_EFFORT_ZONE_WEIGHTS.z2
+  }
+
+  if (hrPercent <= zones.zone3.max) {
+    return RELATIVE_EFFORT_ZONE_WEIGHTS.z3
+  }
+
+  if (hrPercent <= zones.zone4.max) {
+    return RELATIVE_EFFORT_ZONE_WEIGHTS.z4
+  }
+
+  return RELATIVE_EFFORT_ZONE_WEIGHTS.z5
+}
+
+export function computeRelativeEffort(
+  settings: AppSettings,
+  sport: SportType,
+  streams: RelativeEffortStreams | null
+): number | null {
+  const maxHr = getSportMaxHr(settings, sport)
+  const zones = getSportZoneSettings(settings, sport)
+  if (!streams || !maxHr || !zones || sport === 'swimming') {
+    return null
+  }
+
+  const sampleCount = Math.min(streams.time.length, streams.heartrate.length)
+  if (sampleCount < 2) {
+    return null
+  }
+
+  let weightedLoadSeconds = 0
+
+  for (let index = 0; index < sampleCount - 1; index += 1) {
+    const currentTime = streams.time[index]
+    const nextTime = streams.time[index + 1]
+    const hr = streams.heartrate[index]
+
+    if (!Number.isFinite(currentTime) || !Number.isFinite(nextTime) || !Number.isFinite(hr) || hr <= 0) {
+      continue
+    }
+
+    const deltaSeconds = nextTime - currentTime
+    if (deltaSeconds <= 0) {
+      continue
+    }
+
+    const hrPercent = (hr / maxHr) * 100
+    weightedLoadSeconds += deltaSeconds * getRelativeEffortZoneWeight(hrPercent, zones)
+  }
+
+  if (weightedLoadSeconds <= 0) {
+    return null
+  }
+
+  return Number((weightedLoadSeconds / RELATIVE_EFFORT_NORMALIZATION_DIVISOR).toFixed(2))
+}
+
+export function getStoredRelativeEffortStreams(rawPayload: string | null): RelativeEffortStreams | null {
+  if (!rawPayload) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(rawPayload) as StoredRelativeEffortPayload
+    const time = parsed?.streams?.time
+    const heartrate = parsed?.streams?.heartrate
+    if (!Array.isArray(time) || !Array.isArray(heartrate)) {
+      return null
+    }
+
+    return {
+      time: time.map((value) => Number(value)).filter(Number.isFinite),
+      heartrate: heartrate.map((value) => Number(value)).filter(Number.isFinite)
+    }
+  } catch {
+    return null
+  }
 }
 
 export function classifyHrZone(settings: AppSettings, sport: SportType, averageHr: number | null): {

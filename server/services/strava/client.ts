@@ -32,6 +32,18 @@ export interface StravaActivity {
   average_speed: number | null
 }
 
+interface StravaStream<T> {
+  data: T[]
+  original_size: number
+  resolution: string
+  series_type: string
+}
+
+export interface StravaActivityStreamsResponse {
+  heartrate?: StravaStream<number>
+  time?: StravaStream<number>
+}
+
 async function fetchJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, init)
   if (!response.ok) {
@@ -45,10 +57,10 @@ async function fetchJson<T>(url: string, init: RequestInit): Promise<T> {
   return await response.json() as T
 }
 
-function getRuntimeStravaCredentials() {
+function getRuntimeStravaCredentials(userEmail: string) {
   const config = useRuntimeConfig()
   const db = initializeDatabase()
-  const credentials = getEffectiveStravaCredentials(db, {
+  const credentials = getEffectiveStravaCredentials(db, userEmail, {
     stravaClientId: config.stravaClientId,
     stravaClientSecret: config.stravaClientSecret,
     stravaRedirectUri: config.stravaRedirectUri
@@ -64,8 +76,8 @@ function getRuntimeStravaCredentials() {
   return credentials
 }
 
-export async function exchangeCodeForToken(code: string): Promise<StravaTokenResponse> {
-  const credentials = getRuntimeStravaCredentials()
+export async function exchangeCodeForToken(code: string, userEmail: string): Promise<StravaTokenResponse> {
+  const credentials = getRuntimeStravaCredentials(userEmail)
   return await fetchJson<StravaTokenResponse>('https://www.strava.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,8 +90,8 @@ export async function exchangeCodeForToken(code: string): Promise<StravaTokenRes
   })
 }
 
-export async function refreshStravaToken(refreshToken: string): Promise<StravaTokenResponse> {
-  const credentials = getRuntimeStravaCredentials()
+export async function refreshStravaToken(refreshToken: string, userEmail: string): Promise<StravaTokenResponse> {
+  const credentials = getRuntimeStravaCredentials(userEmail)
   return await fetchJson<StravaTokenResponse>('https://www.strava.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -107,4 +119,20 @@ export async function fetchStravaActivities(accessToken: string, page: number, p
       Authorization: `Bearer ${accessToken}`
     }
   })
+}
+
+export async function fetchStravaActivityStreams(accessToken: string, activityId: number): Promise<StravaActivityStreamsResponse> {
+  const params = new URLSearchParams({
+    keys: 'time,heartrate',
+    key_by_type: 'true'
+  })
+
+  return await fetchJson<StravaActivityStreamsResponse>(
+    `https://www.strava.com/api/v3/activities/${activityId}/streams?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  )
 }

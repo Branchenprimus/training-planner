@@ -12,13 +12,13 @@ function mapStatus(row: Record<string, unknown>): SyncStatus {
   }
 }
 
-export function getSyncStatus(db: Database.Database): SyncStatus {
-  const row = db.prepare('SELECT * FROM sync_state WHERE id = 1').get() as Record<string, unknown>
+export function getSyncStatus(db: Database.Database, userEmail: string): SyncStatus {
+  const row = db.prepare('SELECT * FROM user_sync_state WHERE user_email = ?').get(userEmail) as Record<string, unknown>
   return mapStatus(row)
 }
 
-export function updateSyncStatus(db: Database.Database, input: Partial<SyncStatus>): SyncStatus {
-  const current = getSyncStatus(db)
+export function updateSyncStatus(db: Database.Database, userEmail: string, input: Partial<SyncStatus>): SyncStatus {
+  const current = getSyncStatus(db, userEmail)
   const next: SyncStatus = {
     ...current,
     ...input
@@ -26,7 +26,7 @@ export function updateSyncStatus(db: Database.Database, input: Partial<SyncStatu
   const now = new Date().toISOString()
 
   db.prepare(`
-    UPDATE sync_state
+    UPDATE user_sync_state
     SET connected = @connected,
         is_syncing = @isSyncing,
         last_sync_at = @lastSyncAt,
@@ -34,8 +34,9 @@ export function updateSyncStatus(db: Database.Database, input: Partial<SyncStatu
         last_sync_message = @lastSyncMessage,
         imported_activities = @importedActivities,
         updated_at = @updatedAt
-    WHERE id = 1
+    WHERE user_email = @userEmail
   `).run({
+    userEmail,
     connected: next.connected ? 1 : 0,
     isSyncing: next.isSyncing ? 1 : 0,
     lastSyncAt: next.lastSyncAt,

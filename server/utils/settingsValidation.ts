@@ -6,6 +6,7 @@ const zoneSchema = z.object({
 }).refine((value) => value.min <= value.max, 'Zone minimum must be less than or equal to maximum.')
 
 export const appSettingsSchema = z.object({
+  language: z.enum(['en', 'de']),
   runningMaxHr: z.number().int().min(100).max(240),
   cyclingMaxHr: z.number().int().min(100).max(240),
   runningZones: z.object({
@@ -19,7 +20,9 @@ export const appSettingsSchema = z.object({
     zone3: zoneSchema,
     zone4: zoneSchema,
     interval: zoneSchema
-  })
+  }),
+  zone2SessionsBeforeInterval: z.number().int().min(1).max(30),
+  intervalSessionsInBlock: z.number().int().min(1).max(10)
 })
 
 export const settingsSchema = appSettingsSchema.extend({

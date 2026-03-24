@@ -7,6 +7,7 @@ import { getSyncStatus } from '../../repositories/syncRepository'
 import { reanalyzeActivities } from '../../services/analysis/reanalysisService'
 import { settingsSchema } from '../../utils/settingsValidation'
 import { useRuntimeConfig } from '#imports'
+import { ensureUserScope, resolveCurrentUserEmail } from '../../utils/currentUser'
 
 export default defineEventHandler(async (event): Promise<SettingsResponse> => {
   const body = await readBody<unknown>(event)
@@ -19,8 +20,10 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
   }
 
   const db = initializeDatabase()
+  const userEmail = resolveCurrentUserEmail(event)
+  ensureUserScope(db, userEmail)
   const config = useRuntimeConfig()
-  saveStravaCredentials(db, {
+  saveStravaCredentials(db, userEmail, {
     clientId: parsed.data.stravaClientId,
     clientSecret: parsed.data.stravaClientSecret
   }, {
@@ -29,25 +32,29 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
     stravaRedirectUri: config.stravaRedirectUri
   })
 
-  const settings = saveSettings(db, {
+  const settings = saveSettings(db, userEmail, {
+    language: parsed.data.language,
     runningMaxHr: parsed.data.runningMaxHr,
     cyclingMaxHr: parsed.data.cyclingMaxHr,
     runningZones: parsed.data.runningZones,
-    cyclingZones: parsed.data.cyclingZones
+    cyclingZones: parsed.data.cyclingZones,
+    zone2SessionsBeforeInterval: parsed.data.zone2SessionsBeforeInterval,
+    intervalSessionsInBlock: parsed.data.intervalSessionsInBlock
   } satisfies AppSettings)
-  reanalyzeActivities(db, settings)
+  reanalyzeActivities(db, userEmail, settings)
 
   return {
     settings,
-    stravaApp: getStravaAppSettings(db, {
+    stravaApp: getStravaAppSettings(db, userEmail, {
       stravaClientId: config.stravaClientId,
       stravaClientSecret: config.stravaClientSecret,
       stravaRedirectUri: config.stravaRedirectUri
     }),
     syncIntervalMinutes: Number(config.syncIntervalMinutes),
     connectionStatus: {
-      athlete: getAthlete(db),
-      syncStatus: getSyncStatus(db)
+      userEmail,
+      athlete: getAthlete(db, userEmail),
+      syncStatus: getSyncStatus(db, userEmail)
     }
   }
 })
