@@ -57,6 +57,7 @@ function saveLanguage(language: 'en' | 'de') {
 
   void saveSettings({
     language,
+    dashboardChartIds: data.value.settings.dashboardChartIds,
     syncIntervalMinutes: data.value.settings.syncIntervalMinutes,
     runningMaxHr: data.value.settings.runningMaxHr,
     cyclingMaxHr: data.value.settings.cyclingMaxHr,

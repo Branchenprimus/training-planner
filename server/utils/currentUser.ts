@@ -61,6 +61,8 @@ function normalizeAppSettingsValue(value: Record<string, unknown> | null | undef
   return {
     ...DEFAULT_SETTINGS,
     ...rest,
+    dashboardChartIds:
+      Array.isArray(value?.dashboardChartIds) && value.dashboardChartIds.length ? value.dashboardChartIds : [...DEFAULT_SETTINGS.dashboardChartIds],
     runningZone2SessionsBeforeInterval:
       typeof value?.runningZone2SessionsBeforeInterval === 'number' ? value.runningZone2SessionsBeforeInterval : legacyZone2,
     runningIntervalSessionsInBlock:

@@ -212,10 +212,11 @@ h3 {
 
 .relative-effort-popover {
   position: absolute;
-  left: 0;
+  right: 0;
+  left: auto;
   bottom: calc(100% + 0.55rem);
   z-index: 20;
-  width: min(20rem, 76vw);
+  width: min(20rem, calc(100vw - 3rem), calc(100% + 6rem));
   padding: 0.85rem 0.95rem;
   border-radius: 0.95rem;
   background: #fffaf0;
@@ -354,6 +355,7 @@ h3 {
 
   .relative-effort-popover {
     left: 50%;
+    right: auto;
     bottom: auto;
     top: calc(100% + 0.55rem);
     transform: translate(-50%, -4px);

@@ -37,6 +37,7 @@ export default defineEventHandler(async (event): Promise<SettingsResponse> => {
 
   const settings = saveSettings(db, userEmail, {
     language: parsed.data.language,
+    dashboardChartIds: parsed.data.dashboardChartIds,
     syncIntervalMinutes: parsed.data.syncIntervalMinutes,
     runningMaxHr: parsed.data.runningMaxHr,
     cyclingMaxHr: parsed.data.cyclingMaxHr,

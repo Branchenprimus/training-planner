@@ -9,9 +9,11 @@ export const SPORTS: { label: string; value: SportType }[] = [
 export const DATE_RANGES = ['7d', '30d', '90d', 'all'] as const
 
 export type DateRange = (typeof DATE_RANGES)[number]
+export const DEFAULT_DASHBOARD_CHART_IDS = ['running-zone2', 'cycling-zone2'] as const
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
+  dashboardChartIds: [...DEFAULT_DASHBOARD_CHART_IDS],
   syncIntervalMinutes: 30,
   runningMaxHr: 190,
   cyclingMaxHr: 180,

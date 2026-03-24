@@ -27,6 +27,7 @@ const zoneFields = [
 function cloneAppSettings(value: AppSettings): AppSettings {
   return {
     language: value.language,
+    dashboardChartIds: [...value.dashboardChartIds],
     syncIntervalMinutes: value.syncIntervalMinutes,
     runningMaxHr: value.runningMaxHr,
     cyclingMaxHr: value.cyclingMaxHr,

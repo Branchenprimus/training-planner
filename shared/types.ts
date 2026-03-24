@@ -1,5 +1,12 @@
 export type SportType = 'running' | 'cycling' | 'swimming'
 export type AppLanguage = 'en' | 'de'
+export type DashboardChartId =
+  | 'running-zone2'
+  | 'cycling-zone2'
+  | 'running-hr'
+  | 'cycling-hr'
+  | 'running-relative-effort'
+  | 'cycling-relative-effort'
 
 export type ActivityClassification = 'zone2' | 'zone3' | 'zone4' | 'interval' | 'unclassified'
 
@@ -17,6 +24,7 @@ export interface ZoneSettings {
 
 export interface AppSettings {
   language: AppLanguage
+  dashboardChartIds: DashboardChartId[]
   syncIntervalMinutes: number
   runningMaxHr: number
   cyclingMaxHr: number

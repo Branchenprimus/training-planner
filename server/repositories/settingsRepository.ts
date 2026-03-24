@@ -61,6 +61,9 @@ function normalizeSettings(value: LegacyAppSettings | null | undefined): AppSett
   return {
     ...DEFAULT_SETTINGS,
     ...rest,
+    dashboardChartIds: Array.isArray(value?.dashboardChartIds) && value.dashboardChartIds.length
+      ? value.dashboardChartIds
+      : [...DEFAULT_SETTINGS.dashboardChartIds],
     runningZone2SessionsBeforeInterval: value?.runningZone2SessionsBeforeInterval ?? legacyZone2,
     runningIntervalSessionsInBlock: value?.runningIntervalSessionsInBlock ?? legacyInterval,
     cyclingZone2SessionsBeforeInterval: value?.cyclingZone2SessionsBeforeInterval ?? legacyZone2,

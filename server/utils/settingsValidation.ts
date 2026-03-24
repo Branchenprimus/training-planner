@@ -7,6 +7,14 @@ const zoneSchema = z.object({
 
 export const appSettingsSchema = z.object({
   language: z.enum(['en', 'de']),
+  dashboardChartIds: z.array(z.enum([
+    'running-zone2',
+    'cycling-zone2',
+    'running-hr',
+    'cycling-hr',
+    'running-relative-effort',
+    'cycling-relative-effort'
+  ])).min(1),
   syncIntervalMinutes: z.number().int().min(5).max(1440),
   runningMaxHr: z.number().int().min(100).max(240),
   cyclingMaxHr: z.number().int().min(100).max(240),
