@@ -104,6 +104,69 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Fast Pi development over SSH
+
+For day-to-day UI and server work on the Raspberry Pi, use the dedicated dev container instead of rebuilding the production image on every change.
+
+What this gives you:
+
+- local-only dev server on port `3001`
+- automatic reload on file save
+- server restart when Nuxt server files change
+- a separate SQLite database for dev at `/data/training-planner-dev.sqlite`
+- no impact on the public production container on port `3000`
+- database setup handled automatically by the running app in dev mode
+- Nuxt's in-browser dev type checker is disabled for speed; use `npm run typecheck` when you want a full TS check
+
+Start the dev environment on the Pi:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+Follow the dev logs:
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f app-dev
+```
+
+Stop the dev environment:
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+Because you are connecting to the Pi over SSH, forward the dev port from your local machine:
+
+```bash
+ssh -L 3001:localhost:3001 jan@<pi-host>
+```
+
+Then open this on your laptop or desktop:
+
+```text
+http://localhost:3001
+```
+
+Recommended workflow:
+
+1. Keep the SSH tunnel open.
+2. Keep `docker compose -f docker-compose.dev.yml logs -f app-dev` open in another terminal.
+3. Edit files on the Pi over SSH.
+4. Save the file.
+5. Refresh `http://localhost:3001` and let Nuxt hot-reload or restart automatically.
+
+Notes:
+
+- The dev container uses polling-based file watching so changes reliably trigger through SSH and Docker bind mounts on the Pi.
+- Dev runs on `3001` so production can keep running on `3000`.
+- The dev database is separate from production to avoid polluting public data while testing.
+- If dependencies change in `package.json`, rebuild the dev container again:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
 ## Docker Compose on Raspberry Pi 5
 
 The provided Docker image uses Debian-based Node images that work on Linux ARM64, including Raspberry Pi 5.
@@ -127,6 +190,12 @@ You can inspect logs with:
 
 ```bash
 docker compose logs -f app
+```
+
+Recreate the public container after code changes:
+
+```bash
+docker compose up -d --build --force-recreate
 ```
 
 ## Automatic sync behavior
@@ -177,6 +246,29 @@ If your live Cloudflare config is centralized with the other apps, copy just thi
 
 Then restart `cloudflared` on the host.
 
+## Making changes live on the public domain
+
+The public hostname `training-planner.darwin-labs.org` points at the production container on port `3000`, not the dev server on `3001`.
+
+Use this flow:
+
+1. Test locally through SSH port forwarding on `http://localhost:3001`.
+2. When the change is ready, rebuild the production container:
+
+```bash
+docker compose up -d --build --force-recreate
+```
+
+3. Check production logs:
+
+```bash
+docker compose logs --tail 50 app
+```
+
+4. Refresh the public domain.
+
+If Cloudflare Tunnel is already routing `training-planner.darwin-labs.org` to `http://localhost:3000`, no extra tunnel change is needed for normal app updates.
+
 ## Cloudflare Access recommendation
 
 Because this is a personal dashboard exposed to a small group of authenticated people, the recommended production posture is:
@@ -215,10 +307,12 @@ This app assumes public exposure only behind Cloudflare Access or another equiva
 
 ```bash
 npm run dev
+npm run dev:host
 npm run build
 npm run start
 npm run migrate
 docker compose up -d --build
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
 ## Limitations

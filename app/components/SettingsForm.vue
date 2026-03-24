@@ -156,6 +156,102 @@ function bpmFromPercent(maxHr: number, percentage: number) {
     <div class="stack">
       <div class="stack settings-section">
         <div>
+          <h3 class="section-title">{{ t('settings.trainingRatioTitle') }}</h3>
+          <p class="section-subtitle">{{ t('settings.trainingRatioSubtitle') }}</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="zone2SessionsBeforeInterval">{{ t('settings.zone2BeforeInterval') }}</label>
+            <input id="zone2SessionsBeforeInterval" v-model.number="form.zone2SessionsBeforeInterval" type="number" min="1" max="30">
+          </div>
+          <div class="field">
+            <label for="intervalSessionsInBlock">{{ t('settings.intervalSessions') }}</label>
+            <input id="intervalSessionsInBlock" v-model.number="form.intervalSessionsInBlock" type="number" min="1" max="10">
+          </div>
+        </div>
+
+        <p class="field-help">{{ t('settings.currentPlan', { zone2: form.zone2SessionsBeforeInterval, interval: form.intervalSessionsInBlock }) }}</p>
+      </div>
+
+      <div class="stack settings-section">
+        <div>
+          <h3 class="section-title">{{ t('settings.heartRateTitle') }}</h3>
+          <p class="section-subtitle">{{ t('settings.heartRateSubtitle') }}</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="runningMaxHr">{{ t('settings.runningMaxHr') }}</label>
+            <input id="runningMaxHr" v-model.number="form.runningMaxHr" type="number" min="100" max="240">
+          </div>
+          <div class="field">
+            <label for="cyclingMaxHr">{{ t('settings.cyclingMaxHr') }}</label>
+            <input id="cyclingMaxHr" v-model.number="form.cyclingMaxHr" type="number" min="100" max="240">
+          </div>
+        </div>
+
+        <p class="field-help">{{ t('settings.heartRateHelp') }}</p>
+      </div>
+
+      <div class="form-grid">
+      <div class="stack settings-section">
+          <div>
+            <h3 class="section-title">{{ t('settings.runningZonesTitle') }}</h3>
+            <p class="section-subtitle">{{ t('settings.runningZonesSubtitle') }}</p>
+          </div>
+          <div v-for="zone in zoneFields" :key="`running-${zone.key}`" class="zone-grid">
+            <div class="field">
+              <label :for="`running-${zone.key}-min`" class="zone-label">
+                <span>{{ t('settings.zoneMin', { zone: zone.label }) }}</span>
+                <span v-if="bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].min) !== null" class="zone-bpm">
+                  {{ bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].min) }} bpm
+                </span>
+              </label>
+              <input :id="`running-${zone.key}-min`" v-model.number="form.runningZones[zone.key].min" type="number" min="1" max="100">
+            </div>
+            <div class="field">
+              <label :for="`running-${zone.key}-max`" class="zone-label">
+                <span>{{ t('settings.zoneMax', { zone: zone.label }) }}</span>
+                <span v-if="bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].max) !== null" class="zone-bpm">
+                  {{ bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].max) }} bpm
+                </span>
+              </label>
+              <input :id="`running-${zone.key}-max`" v-model.number="form.runningZones[zone.key].max" type="number" min="1" max="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="stack settings-section">
+          <div>
+            <h3 class="section-title">{{ t('settings.cyclingZonesTitle') }}</h3>
+            <p class="section-subtitle">{{ t('settings.cyclingZonesSubtitle') }}</p>
+          </div>
+          <div v-for="zone in zoneFields" :key="`cycling-${zone.key}`" class="zone-grid">
+            <div class="field">
+              <label :for="`cycling-${zone.key}-min`" class="zone-label">
+                <span>{{ t('settings.zoneMin', { zone: zone.label }) }}</span>
+                <span v-if="bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].min) !== null" class="zone-bpm">
+                  {{ bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].min) }} bpm
+                </span>
+              </label>
+              <input :id="`cycling-${zone.key}-min`" v-model.number="form.cyclingZones[zone.key].min" type="number" min="1" max="100">
+            </div>
+            <div class="field">
+              <label :for="`cycling-${zone.key}-max`" class="zone-label">
+                <span>{{ t('settings.zoneMax', { zone: zone.label }) }}</span>
+                <span v-if="bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].max) !== null" class="zone-bpm">
+                  {{ bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].max) }} bpm
+                </span>
+              </label>
+              <input :id="`cycling-${zone.key}-max`" v-model.number="form.cyclingZones[zone.key].max" type="number" min="1" max="100">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack settings-section">
+        <div>
           <h3 class="section-title">{{ t('settings.languageTitle') }}</h3>
           <p class="section-subtitle">{{ t('settings.languageSubtitle') }}</p>
         </div>
@@ -272,102 +368,6 @@ function bpmFromPercent(maxHr: number, percentage: number) {
           <button class="btn btn-secondary btn-danger-soft" type="button" @click="emit('resetStrava')">
             {{ t('settings.resetStrava') }}
           </button>
-        </div>
-      </div>
-
-      <div class="stack settings-section">
-        <div>
-          <h3 class="section-title">{{ t('settings.trainingRatioTitle') }}</h3>
-          <p class="section-subtitle">{{ t('settings.trainingRatioSubtitle') }}</p>
-        </div>
-
-        <div class="form-grid">
-          <div class="field">
-            <label for="zone2SessionsBeforeInterval">{{ t('settings.zone2BeforeInterval') }}</label>
-            <input id="zone2SessionsBeforeInterval" v-model.number="form.zone2SessionsBeforeInterval" type="number" min="1" max="30">
-          </div>
-          <div class="field">
-            <label for="intervalSessionsInBlock">{{ t('settings.intervalSessions') }}</label>
-            <input id="intervalSessionsInBlock" v-model.number="form.intervalSessionsInBlock" type="number" min="1" max="10">
-          </div>
-        </div>
-
-        <p class="field-help">{{ t('settings.currentPlan', { zone2: form.zone2SessionsBeforeInterval, interval: form.intervalSessionsInBlock }) }}</p>
-      </div>
-
-      <div class="stack settings-section">
-        <div>
-          <h3 class="section-title">{{ t('settings.heartRateTitle') }}</h3>
-          <p class="section-subtitle">{{ t('settings.heartRateSubtitle') }}</p>
-        </div>
-
-        <div class="form-grid">
-          <div class="field">
-            <label for="runningMaxHr">{{ t('settings.runningMaxHr') }}</label>
-            <input id="runningMaxHr" v-model.number="form.runningMaxHr" type="number" min="100" max="240">
-          </div>
-          <div class="field">
-            <label for="cyclingMaxHr">{{ t('settings.cyclingMaxHr') }}</label>
-            <input id="cyclingMaxHr" v-model.number="form.cyclingMaxHr" type="number" min="100" max="240">
-          </div>
-        </div>
-
-        <p class="field-help">{{ t('settings.heartRateHelp') }}</p>
-      </div>
-
-      <div class="form-grid">
-      <div class="stack settings-section">
-          <div>
-            <h3 class="section-title">{{ t('settings.runningZonesTitle') }}</h3>
-            <p class="section-subtitle">{{ t('settings.runningZonesSubtitle') }}</p>
-          </div>
-          <div v-for="zone in zoneFields" :key="`running-${zone.key}`" class="zone-grid">
-            <div class="field">
-              <label :for="`running-${zone.key}-min`" class="zone-label">
-                <span>{{ t('settings.zoneMin', { zone: zone.label }) }}</span>
-                <span v-if="bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].min) !== null" class="zone-bpm">
-                  {{ bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].min) }} bpm
-                </span>
-              </label>
-              <input :id="`running-${zone.key}-min`" v-model.number="form.runningZones[zone.key].min" type="number" min="1" max="100">
-            </div>
-            <div class="field">
-              <label :for="`running-${zone.key}-max`" class="zone-label">
-                <span>{{ t('settings.zoneMax', { zone: zone.label }) }}</span>
-                <span v-if="bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].max) !== null" class="zone-bpm">
-                  {{ bpmFromPercent(form.runningMaxHr, form.runningZones[zone.key].max) }} bpm
-                </span>
-              </label>
-              <input :id="`running-${zone.key}-max`" v-model.number="form.runningZones[zone.key].max" type="number" min="1" max="100">
-            </div>
-          </div>
-        </div>
-
-        <div class="stack settings-section">
-          <div>
-            <h3 class="section-title">{{ t('settings.cyclingZonesTitle') }}</h3>
-            <p class="section-subtitle">{{ t('settings.cyclingZonesSubtitle') }}</p>
-          </div>
-          <div v-for="zone in zoneFields" :key="`cycling-${zone.key}`" class="zone-grid">
-            <div class="field">
-              <label :for="`cycling-${zone.key}-min`" class="zone-label">
-                <span>{{ t('settings.zoneMin', { zone: zone.label }) }}</span>
-                <span v-if="bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].min) !== null" class="zone-bpm">
-                  {{ bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].min) }} bpm
-                </span>
-              </label>
-              <input :id="`cycling-${zone.key}-min`" v-model.number="form.cyclingZones[zone.key].min" type="number" min="1" max="100">
-            </div>
-            <div class="field">
-              <label :for="`cycling-${zone.key}-max`" class="zone-label">
-                <span>{{ t('settings.zoneMax', { zone: zone.label }) }}</span>
-                <span v-if="bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].max) !== null" class="zone-bpm">
-                  {{ bpmFromPercent(form.cyclingMaxHr, form.cyclingZones[zone.key].max) }} bpm
-                </span>
-              </label>
-              <input :id="`cycling-${zone.key}-max`" v-model.number="form.cyclingZones[zone.key].max" type="number" min="1" max="100">
-            </div>
-          </div>
         </div>
       </div>
 

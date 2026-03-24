@@ -1,0 +1,32 @@
+services:
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    container_name: training-planner-dev
+    restart: unless-stopped
+    command: npm run dev:host
+    ports:
+      - "${DEV_APP_PORT:-3001}:3001"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3001
+      NITRO_HOST: 0.0.0.0
+      NITRO_PORT: 3001
+      NUXT_SQLITE_PATH: /data/training-planner-dev.sqlite
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - .:/app
+      - training_planner_dev_node_modules:/app/node_modules
+      - training_planner_dev_nuxt:/app/.nuxt
+      - training_planner_dev_data:/data
+
+volumes:
+  training_planner_dev_node_modules:
+  training_planner_dev_nuxt:
+  training_planner_dev_data:
