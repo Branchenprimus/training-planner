@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ChartSeriesResponse, PaginatedActivitiesResponse } from '~/shared/types'
+import { hasChartScope, useChartDefinitions } from '../composables/useChartDefinitions'
 import { useDateRange } from '../composables/useDateRange'
 
 const { locale, t } = useAppI18n()
@@ -8,27 +9,13 @@ const visibleCount = ref(pageSize)
 const { selectedRange, ranges } = useDateRange('30d')
 const { data, pending } = await useFetch<PaginatedActivitiesResponse>(() => `/api/activities/running?page=1&pageSize=${visibleCount.value}`, { watch: [visibleCount] })
 const charts = await useFetch<ChartSeriesResponse>(() => `/api/charts/running?range=${selectedRange.value}`, { watch: [selectedRange] })
-
-function buildDateLabels(points: ChartSeriesResponse['zone2']) {
-  return points.map((point) => new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric' }).format(new Date(point.date)))
-}
-
-function buildPointTitles(points: ChartSeriesResponse['zone2']) {
-  return points.map((point) => point.label)
-}
-
-function buildSeriesLabels(points: { label: string }[]) {
-  return points.map((point) => point.label)
-}
-
-const runningZone2 = computed(() => charts.data.value?.zone2 ?? [])
-const runningHr = computed(() => charts.data.value?.hrPerformance ?? [])
-const runningRelativeEffort = computed(() => charts.data.value?.relativeEffort ?? [])
-const runningZoneDistribution = computed(() => charts.data.value?.zoneDistribution ?? { zone2: [], zone3: [], zone4: [], interval: [] })
-const runningSessionClassification = computed(() => charts.data.value?.sessionClassification ?? { zone2: [], zone3: [], zone4: [], interval: [] })
-const runningDistance = computed(() => charts.data.value?.distance ?? [])
-const runningDuration = computed(() => charts.data.value?.duration ?? [])
-const runningElevation = computed(() => charts.data.value?.elevation ?? [])
+const { chartDefinitions } = useChartDefinitions({
+  locale,
+  t,
+  runningCharts: computed(() => charts.data.value),
+  cyclingCharts: computed(() => undefined)
+})
+const runningPageCharts = computed(() => chartDefinitions.value.filter((chart) => hasChartScope(chart, 'running')))
 
 const canLoadMore = computed(() => (data.value?.items.length ?? 0) < (data.value?.total ?? 0))
 
@@ -61,192 +48,20 @@ function loadMore() {
       </div>
 
       <div class="dashboard-grid running-chart-grid charts-content-grid">
-        <div class="grid-span-6">
+        <div v-for="chart in runningPageCharts" :key="chart.id" class="grid-span-6">
           <ChartCard
-            :title="t('runningZone2Progress')"
-            :subtitle="t('runningZone2Subtitle')"
-            :info-text="t('runningZone2Info')"
-            primary-metric="runningPace"
-            :labels="buildDateLabels(runningZone2)"
-            :point-titles="buildPointTitles(runningZone2)"
-            :tooltip-detail-lines="runningZone2.map((point) => point.tooltipDetails ?? [])"
-            :datasets="[
-              {
-                label: t('zone2'),
-                data: runningZone2.map((point) => point.value),
-                borderColor: '#166534',
-                backgroundColor: 'rgba(22,101,52,0.2)'
-              }
-            ]"
-          />
-        </div>
-
-        <div class="grid-span-6">
-          <ChartCard
-            :title="t('runningHrVsPace')"
-            :subtitle="t('chronologicalView', { metric: t('paceLabel').toLowerCase() })"
-            :info-text="t('runningHrVsPaceInfo')"
-            primary-metric="runningPace"
-            :invert-primary-axis="true"
-            secondary-metric="heartRate"
-            :labels="buildDateLabels(runningHr)"
-            :point-titles="buildPointTitles(runningHr)"
-            :datasets="[
-              {
-                label: t('paceLabel'),
-                data: runningHr.map((point) => point.value),
-                borderColor: '#166534',
-                backgroundColor: 'rgba(22,101,52,0.2)'
-              },
-              {
-                label: t('hrLabel'),
-                data: runningHr.map((point) => point.secondaryValue ?? 0),
-                borderColor: '#8b2f24',
-                backgroundColor: 'rgba(139,47,36,0.2)',
-                yAxisID: 'y1'
-              }
-            ]"
-          />
-        </div>
-
-        <div class="grid-span-6">
-          <ChartCard
-            :title="t('runningRelativeEffort')"
-            :subtitle="t('runningRelativeEffortSubtitle')"
-            :info-text="t('runningRelativeEffortInfo')"
-            primary-metric="relativeEffort"
-            :labels="buildDateLabels(runningRelativeEffort)"
-            :point-titles="buildPointTitles(runningRelativeEffort)"
-            :tooltip-detail-lines="runningRelativeEffort.map((point) => point.tooltipDetails ?? [])"
-            :datasets="[
-              {
-                label: t('intensityLabel'),
-                data: runningRelativeEffort.map((point) => point.value),
-                borderColor: '#8b2f24',
-                backgroundColor: 'rgba(139,47,36,0.18)'
-              }
-            ]"
-          />
-        </div>
-
-        <div class="grid-span-6">
-          <ChartCard
-            :title="t('runningZoneDistribution')"
-            :subtitle="t('runningZoneDistributionSubtitle')"
-            :info-text="t('runningZoneDistributionInfo')"
-            primary-metric="durationMinutes"
-            :labels="buildDateLabels(runningZoneDistribution.zone2)"
-            :point-titles="buildPointTitles(runningZoneDistribution.zone2)"
-            :tooltip-detail-lines="runningZoneDistribution.zone2.map((point) => point.tooltipDetails ?? [])"
-            :datasets="[
-              {
-                label: t('zone2'),
-                data: runningZoneDistribution.zone2.map((point) => point.value),
-                borderColor: '#166534',
-                backgroundColor: 'rgba(22,101,52,0.18)'
-              },
-              {
-                label: t('zone3'),
-                data: runningZoneDistribution.zone3.map((point) => point.value),
-                borderColor: '#8a6a18',
-                backgroundColor: 'rgba(138,106,24,0.18)'
-              },
-              {
-                label: t('zone4'),
-                data: runningZoneDistribution.zone4.map((point) => point.value),
-                borderColor: '#9a551f',
-                backgroundColor: 'rgba(154,85,31,0.18)'
-              },
-              {
-                label: t('intervalLabel'),
-                data: runningZoneDistribution.interval.map((point) => point.value),
-                borderColor: '#8b2f24',
-                backgroundColor: 'rgba(139,47,36,0.18)'
-              }
-            ]"
-          />
-        </div>
-
-        <div class="grid-span-6">
-          <ChartCard
-            :title="t('runningSessionsByClassification')"
-            :subtitle="t('runningSessionsByClassificationSubtitle')"
-            :info-text="t('runningSessionsByClassificationInfo')"
-            primary-metric="sessionCount"
-            variant="bar"
-            :labels="buildSeriesLabels(runningSessionClassification.zone2)"
-            :datasets="[
-              {
-                label: t('zone2'),
-                data: runningSessionClassification.zone2.map((point) => point.value),
-                borderColor: '#166534',
-                backgroundColor: 'rgba(22,101,52,0.78)'
-              },
-              {
-                label: t('zone3'),
-                data: runningSessionClassification.zone3.map((point) => point.value),
-                borderColor: '#8a6a18',
-                backgroundColor: 'rgba(138,106,24,0.78)'
-              },
-              {
-                label: t('zone4'),
-                data: runningSessionClassification.zone4.map((point) => point.value),
-                borderColor: '#9a551f',
-                backgroundColor: 'rgba(154,85,31,0.78)'
-              },
-              {
-                label: t('intervalLabel'),
-                data: runningSessionClassification.interval.map((point) => point.value),
-                borderColor: '#8b2f24',
-                backgroundColor: 'rgba(139,47,36,0.78)'
-              }
-            ]"
-          />
-        </div>
-
-        <div class="grid-span-6">
-          <ChartCard
-            :title="t('runDistanceVsDuration')"
-            :subtitle="t('runDistanceVsDurationSubtitle')"
-            :info-text="t('runDistanceVsDurationInfo')"
-            primary-metric="distanceKm"
-            secondary-metric="durationMinutes"
-            :labels="buildDateLabels(runningDistance)"
-            :point-titles="buildPointTitles(runningDistance)"
-            :datasets="[
-              {
-                label: t('distanceLabel'),
-                data: runningDistance.map((point) => point.value),
-                borderColor: '#c97c2a',
-                backgroundColor: 'rgba(201,124,42,0.2)'
-              },
-              {
-                label: t('durationLabel'),
-                data: runningDuration.map((point) => point.value),
-                borderColor: '#6d614f',
-                backgroundColor: 'rgba(109,97,79,0.2)',
-                yAxisID: 'y1'
-              }
-            ]"
-          />
-        </div>
-
-        <div class="grid-span-6">
-          <ChartCard
-            :title="t('runningElevationGain')"
-            :subtitle="t('runningElevationGainSubtitle')"
-            :info-text="t('runningElevationGainInfo')"
-            primary-metric="elevationMeters"
-            :labels="buildDateLabels(runningElevation)"
-            :point-titles="buildPointTitles(runningElevation)"
-            :datasets="[
-              {
-                label: t('elevationLabel'),
-                data: runningElevation.map((point) => point.value),
-                borderColor: '#8a5b21',
-                backgroundColor: 'rgba(138,91,33,0.2)'
-              }
-            ]"
+            :title="chart.title"
+            :subtitle="chart.subtitle"
+            :info-text="chart.infoText"
+            :variant="chart.variant"
+            :tooltip-detail-lines="chart.tooltipDetailLines"
+            :tooltip-title-mode="chart.tooltipTitleMode"
+            :primary-metric="chart.primaryMetric"
+            :secondary-metric="chart.secondaryMetric"
+            :invert-primary-axis="chart.invertPrimaryAxis"
+            :labels="chart.labels"
+            :point-titles="chart.pointTitles"
+            :datasets="chart.datasets"
           />
         </div>
       </div>
