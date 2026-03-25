@@ -29,6 +29,8 @@ const props = defineProps<{
   infoText?: string
   labels: string[]
   pointTitles?: string[]
+  tooltipDetailLines?: string[][]
+  tooltipTitleMode?: 'default' | 'point-title-only'
   datasets: Array<{
     label: string
     data: number[]
@@ -109,13 +111,29 @@ const baseChartOptions = computed(() => ({
 
           const pointTitle = props.pointTitles?.[firstItem.dataIndex]
           const dateLabel = props.labels[firstItem.dataIndex] ?? ''
-          return pointTitle ? [...wrapTooltipText(pointTitle), dateLabel] : dateLabel
+          if (!pointTitle) {
+            return dateLabel
+          }
+
+          if (props.tooltipTitleMode === 'point-title-only') {
+            return wrapTooltipText(pointTitle)
+          }
+
+          return [...wrapTooltipText(pointTitle), dateLabel]
         },
         label: (context: TooltipItem<'line' | 'bar'>) => {
           const metric = context.dataset.yAxisID === 'y1' && props.secondaryMetric ? props.secondaryMetric : props.primaryMetric
           const prefix = context.dataset.label ? `${context.dataset.label}: ` : ''
           const value = typeof context.parsed.y === 'number' ? context.parsed.y : 0
           return `${prefix}${formatChartMetricValue(metric, value)}`
+        },
+        afterBody: (items: TooltipItem<'line' | 'bar'>[]) => {
+          const firstItem = items[0]
+          if (!firstItem) {
+            return []
+          }
+
+          return props.tooltipDetailLines?.[firstItem.dataIndex] ?? []
         }
       }
     }

@@ -1,6 +1,6 @@
 import { createError, getQuery } from 'h3'
 import { DATE_RANGES, type DateRange } from '../../../shared/constants'
-import { performanceValueForChart } from '../../../shared/format'
+import { formatDistanceKm, formatDuration, formatHr, formatPerformanceBySport, performanceValueForChart } from '../../../shared/format'
 import type { ChartPoint, ChartSeriesResponse, ActivityListItem } from '../../../shared/types'
 import { initializeDatabase } from '../../database/bootstrap'
 import { computeRelativeEffortBreakdown, getStoredRelativeEffortStreams } from '../../domain/hr'
@@ -123,6 +123,18 @@ export default defineEventHandler((event): ChartSeriesResponse => {
   const payloads = getActivityRawPayloads(db, activities.map((activity) => activity.id))
   const granularity = getBucketGranularity(range)
   const buckets = bucketedActivities(activities, granularity)
+  const relativeEffortBreakdowns = new Map(
+    activities.map((activity) => [
+      activity.id,
+      computeRelativeEffortBreakdown(
+        settings,
+        activity.sport,
+        getStoredRelativeEffortStreams(payloads.get(activity.id) ?? null),
+        activity.averageHeartRate,
+        activity.durationSeconds
+      )
+    ])
+  )
 
   return {
     sport,
@@ -139,7 +151,13 @@ export default defineEventHandler((event): ChartSeriesResponse => {
       .map((activity: ActivityListItem) => ({
         date: activity.startDate,
         value: performanceValueForChart(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps) ?? 0,
-        label: activity.name
+        label: activity.name,
+        tooltipDetails: [
+          `${sport === 'cycling' ? 'Speed' : 'Pace'}: ${formatPerformanceBySport(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps)}`,
+          `Duration: ${formatDuration(activity.durationSeconds)}`,
+          `Distance: ${formatDistanceKm(activity.distanceMeters)}`,
+          `HR: ${formatHr(activity.averageHeartRate)}`
+        ]
       })),
     hrPerformance: activities
       .filter((activity: ActivityListItem) => activity.averageHeartRate && performanceValueForChart(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps) !== null)
@@ -154,7 +172,13 @@ export default defineEventHandler((event): ChartSeriesResponse => {
       .map((activity: ActivityListItem) => ({
         date: activity.startDate,
         value: activity.relativeEffort ?? 0,
-        label: activity.name
+        label: activity.name,
+        tooltipDetails: [
+          `${sport === 'cycling' ? 'Speed' : 'Pace'}: ${formatPerformanceBySport(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps)}`,
+          `Duration: ${formatDuration(activity.durationSeconds)}`,
+          `Distance: ${formatDistanceKm(activity.distanceMeters)}`,
+          `HR: ${formatHr(activity.averageHeartRate)}`
+        ]
       })),
     distance: activities
       .filter((activity: ActivityListItem) => activity.distanceMeters > 0)
@@ -190,58 +214,50 @@ export default defineEventHandler((event): ChartSeriesResponse => {
       Number((Math.max(...bucket.activities.map((activity) => activity.durationSeconds), 0) / 60).toFixed(1))
     )),
     zoneDistribution: {
-      zone2: buckets.map((bucket) => buildBucketPoint(
-        bucket,
-        Number((bucket.activities.reduce((total, activity) => {
-          const breakdown = computeRelativeEffortBreakdown(
-            settings,
-            activity.sport,
-            getStoredRelativeEffortStreams(payloads.get(activity.id) ?? null),
-            activity.averageHeartRate,
-            activity.durationSeconds
-          )
-          return total + (breakdown?.z2 ?? 0)
-        }, 0) / 60).toFixed(1))
-      )),
-      zone3: buckets.map((bucket) => buildBucketPoint(
-        bucket,
-        Number((bucket.activities.reduce((total, activity) => {
-          const breakdown = computeRelativeEffortBreakdown(
-            settings,
-            activity.sport,
-            getStoredRelativeEffortStreams(payloads.get(activity.id) ?? null),
-            activity.averageHeartRate,
-            activity.durationSeconds
-          )
-          return total + (breakdown?.z3 ?? 0)
-        }, 0) / 60).toFixed(1))
-      )),
-      zone4: buckets.map((bucket) => buildBucketPoint(
-        bucket,
-        Number((bucket.activities.reduce((total, activity) => {
-          const breakdown = computeRelativeEffortBreakdown(
-            settings,
-            activity.sport,
-            getStoredRelativeEffortStreams(payloads.get(activity.id) ?? null),
-            activity.averageHeartRate,
-            activity.durationSeconds
-          )
-          return total + (breakdown?.z4 ?? 0)
-        }, 0) / 60).toFixed(1))
-      )),
-      interval: buckets.map((bucket) => buildBucketPoint(
-        bucket,
-        Number((bucket.activities.reduce((total, activity) => {
-          const breakdown = computeRelativeEffortBreakdown(
-            settings,
-            activity.sport,
-            getStoredRelativeEffortStreams(payloads.get(activity.id) ?? null),
-            activity.averageHeartRate,
-            activity.durationSeconds
-          )
-          return total + (breakdown?.z5 ?? 0)
-        }, 0) / 60).toFixed(1))
-      ))
+      zone2: activities.map((activity) => ({
+        date: activity.startDate,
+        value: Number((((relativeEffortBreakdowns.get(activity.id)?.z2 ?? 0) / 60)).toFixed(1)),
+        label: activity.name,
+        tooltipDetails: [
+          `${sport === 'cycling' ? 'Speed' : 'Pace'}: ${formatPerformanceBySport(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps)}`,
+          `Duration: ${formatDuration(activity.durationSeconds)}`,
+          `Distance: ${formatDistanceKm(activity.distanceMeters)}`,
+          `HR: ${formatHr(activity.averageHeartRate)}`
+        ]
+      })),
+      zone3: activities.map((activity) => ({
+        date: activity.startDate,
+        value: Number((((relativeEffortBreakdowns.get(activity.id)?.z3 ?? 0) / 60)).toFixed(1)),
+        label: activity.name,
+        tooltipDetails: [
+          `${sport === 'cycling' ? 'Speed' : 'Pace'}: ${formatPerformanceBySport(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps)}`,
+          `Duration: ${formatDuration(activity.durationSeconds)}`,
+          `Distance: ${formatDistanceKm(activity.distanceMeters)}`,
+          `HR: ${formatHr(activity.averageHeartRate)}`
+        ]
+      })),
+      zone4: activities.map((activity) => ({
+        date: activity.startDate,
+        value: Number((((relativeEffortBreakdowns.get(activity.id)?.z4 ?? 0) / 60)).toFixed(1)),
+        label: activity.name,
+        tooltipDetails: [
+          `${sport === 'cycling' ? 'Speed' : 'Pace'}: ${formatPerformanceBySport(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps)}`,
+          `Duration: ${formatDuration(activity.durationSeconds)}`,
+          `Distance: ${formatDistanceKm(activity.distanceMeters)}`,
+          `HR: ${formatHr(activity.averageHeartRate)}`
+        ]
+      })),
+      interval: activities.map((activity) => ({
+        date: activity.startDate,
+        value: Number((((relativeEffortBreakdowns.get(activity.id)?.z5 ?? 0) / 60)).toFixed(1)),
+        label: activity.name,
+        tooltipDetails: [
+          `${sport === 'cycling' ? 'Speed' : 'Pace'}: ${formatPerformanceBySport(activity.sport, activity.distanceMeters, activity.durationSeconds, activity.averageSpeedMps)}`,
+          `Duration: ${formatDuration(activity.durationSeconds)}`,
+          `Distance: ${formatDistanceKm(activity.distanceMeters)}`,
+          `HR: ${formatHr(activity.averageHeartRate)}`
+        ]
+      }))
     },
     sessionClassification: {
       zone2: buckets.map((bucket) => buildBucketPoint(

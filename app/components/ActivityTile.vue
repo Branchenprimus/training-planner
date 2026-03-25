@@ -15,11 +15,10 @@ const zoneBreakdownChart = computed(() => {
   }
 
   const segments = [
-    { key: 'z1', label: 'Z1', seconds: relativeEffortBreakdown.value.z1, color: '#5c5245' },
-    { key: 'z2', label: 'Z2', seconds: relativeEffortBreakdown.value.z2, color: '#245233' },
-    { key: 'z3', label: 'Z3', seconds: relativeEffortBreakdown.value.z3, color: '#6f5516' },
-    { key: 'z4', label: 'Z4', seconds: relativeEffortBreakdown.value.z4, color: '#7a4512' },
-    { key: 'z5', label: 'Z5', seconds: relativeEffortBreakdown.value.z5, color: '#7b2323' }
+    { key: 'z2', label: 'Z2', seconds: relativeEffortBreakdown.value.z2, color: '#245233', range: relativeEffortBreakdown.value.zoneRanges?.z2 ?? '' },
+    { key: 'z3', label: 'Z3', seconds: relativeEffortBreakdown.value.z3, color: '#6f5516', range: relativeEffortBreakdown.value.zoneRanges?.z3 ?? '' },
+    { key: 'z4', label: 'Z4', seconds: relativeEffortBreakdown.value.z4, color: '#7a4512', range: relativeEffortBreakdown.value.zoneRanges?.z4 ?? '' },
+    { key: 'z5', label: 'Z5', seconds: relativeEffortBreakdown.value.z5, color: '#7b2323', range: relativeEffortBreakdown.value.zoneRanges?.z5 ?? '' }
   ]
 
   const maxSeconds = Math.max(...segments.map((segment) => segment.seconds), 1)
@@ -94,7 +93,10 @@ const zoneBreakdownChart = computed(() => {
                 :key="segment.key"
                 class="relative-effort-row"
               >
-                <span class="relative-effort-zone">{{ segment.label }}</span>
+                <span class="relative-effort-zone">
+                  {{ segment.label }}
+                  <span v-if="segment.range" class="relative-effort-zone-range">{{ segment.range }}</span>
+                </span>
                 <div class="relative-effort-track">
                   <div
                     class="relative-effort-bar"
@@ -269,7 +271,7 @@ h3 {
 .relative-effort-row {
   position: relative;
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) 4rem;
+  grid-template-columns: minmax(4.9rem, 6.2rem) minmax(0, 1fr) 4rem;
   align-items: center;
   gap: 0.55rem;
   min-height: 1.8rem;
@@ -285,6 +287,14 @@ h3 {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-muted);
+  display: grid;
+  gap: 0.08rem;
+}
+
+.relative-effort-zone-range {
+  font-size: 0.68rem;
+  line-height: 1.2;
+  font-weight: 500;
 }
 
 .relative-effort-track {

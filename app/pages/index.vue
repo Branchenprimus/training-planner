@@ -12,8 +12,10 @@ type DashboardChartDefinition = {
   secondaryMetric?: 'heartRate' | 'durationMinutes'
   invertPrimaryAxis?: boolean
   variant?: 'line' | 'bar'
+  tooltipTitleMode?: 'default' | 'point-title-only'
   labels: string[]
   pointTitles?: string[]
+  tooltipDetailLines?: string[][]
   datasets: Array<{
     label: string
     data: number[]
@@ -49,11 +51,12 @@ const selectedChartIds = ref<DashboardChartId[]>([...defaultChartIds])
 const draftChartIds = ref<DashboardChartId[]>([...defaultChartIds])
 const isChartEditorOpen = ref(false)
 const isSavingChartSelection = ref(false)
+const FEATURED_CHART_ID: DashboardChartId = 'multisport-weekly-distance'
 
 watch(
   () => settingsState.data.value?.settings.dashboardChartIds,
   (chartIds) => {
-    if (!chartIds?.length) {
+    if (!chartIds) {
       selectedChartIds.value = [...defaultChartIds]
       if (!isChartEditorOpen.value) {
         draftChartIds.value = [...defaultChartIds]
@@ -81,6 +84,26 @@ function buildSeriesLabels(points: { label: string }[]) {
   return points.map((point) => point.label)
 }
 
+function buildWeekRangeTitle(weekStartDate: string) {
+  const start = new Date(weekStartDate)
+  const end = new Date(weekStartDate)
+  end.setUTCDate(end.getUTCDate() + 6)
+
+  if (locale.value === 'de') {
+    const startDay = new Intl.DateTimeFormat('de-DE', { day: 'numeric', timeZone: 'UTC' }).format(start)
+    const endFormatted = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(end)
+    return `Week: ${startDay}. - ${endFormatted}`
+  }
+
+  const startFormatted = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(start)
+  const endFormatted = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(end)
+  return `Week: ${startFormatted} - ${endFormatted}`
+}
+
+function buildWeekRangeLabel(weekStartDate: string) {
+  return buildWeekRangeTitle(weekStartDate).replace(/^Week:\s*/, '')
+}
+
 const runningZone2 = computed(() => runningCharts.data.value?.zone2 ?? [])
 const cyclingZone2 = computed(() => cyclingCharts.data.value?.zone2 ?? [])
 const runningHr = computed(() => runningCharts.data.value?.hrPerformance ?? [])
@@ -94,8 +117,8 @@ const cyclingSessionClassification = computed(() => cyclingCharts.data.value?.se
 const multisportWeeklyRunning = computed(() => multisportWeeklyCharts.data.value?.running ?? [])
 const multisportWeeklyCycling = computed(() => multisportWeeklyCharts.data.value?.cycling ?? [])
 const multisportWeeklySwimming = computed(() => multisportWeeklyCharts.data.value?.swimming ?? [])
-const multisportWeeklyLabels = computed(() => multisportWeeklyCharts.data.value?.labels ?? [])
-const multisportWeeklyPointTitles = computed(() => multisportWeeklyCharts.data.value?.pointTitles ?? [])
+const multisportWeeklyLabels = computed(() => multisportWeeklyRunning.value.map((point) => buildWeekRangeLabel(point.date)))
+const multisportWeeklyPointTitles = computed(() => multisportWeeklyRunning.value.map((point) => buildWeekRangeTitle(point.date)))
 
 const previewLabels = ['Mar 2', 'Mar 9', 'Mar 16', 'Mar 23']
 const previewPointTitles = {
@@ -111,6 +134,63 @@ const previewPointTitles = {
 
 const chartDefinitions = computed(() => [
   {
+    id: 'multisport-weekly-distance',
+    title: t('multisportWeeklyDistance'),
+    subtitle: t('multisportWeeklyDistanceSubtitle'),
+    infoText: t('multisportWeeklyDistanceInfo'),
+    primaryMetric: 'distanceKm',
+    tooltipTitleMode: 'point-title-only',
+    labels: multisportWeeklyLabels.value,
+    pointTitles: multisportWeeklyPointTitles.value,
+    datasets: [
+      {
+        label: t('running'),
+        data: multisportWeeklyRunning.value.map((point) => point.value),
+        borderColor: '#166534',
+        backgroundColor: 'rgba(22,101,52,0.18)'
+      },
+      {
+        label: t('cycling'),
+        data: multisportWeeklyCycling.value.map((point) => point.value),
+        borderColor: '#c97c2a',
+        backgroundColor: 'rgba(201,124,42,0.18)'
+      },
+      {
+        label: t('swimming'),
+        data: multisportWeeklySwimming.value.map((point) => point.value),
+        borderColor: '#2f6fb3',
+        backgroundColor: 'rgba(47,111,179,0.18)'
+      }
+    ],
+    previewLabels,
+    previewPointTitles: [
+      'Week: Mar 2 - Mar 8',
+      'Week: Mar 9 - Mar 15',
+      'Week: Mar 16 - Mar 22',
+      'Week: Mar 23 - Mar 29'
+    ],
+    previewDatasets: [
+      {
+        label: t('running'),
+        data: [18, 26, 31, 24],
+        borderColor: '#166534',
+        backgroundColor: 'rgba(22,101,52,0.18)'
+      },
+      {
+        label: t('cycling'),
+        data: [62, 84, 96, 78],
+        borderColor: '#c97c2a',
+        backgroundColor: 'rgba(201,124,42,0.18)'
+      },
+      {
+        label: t('swimming'),
+        data: [2.4, 3.1, 2.7, 3.4],
+        borderColor: '#2f6fb3',
+        backgroundColor: 'rgba(47,111,179,0.18)'
+      }
+    ]
+  },
+  {
     id: 'running-zone2',
     title: t('runningZone2Progress'),
     subtitle: t('runningZone2Subtitle'),
@@ -118,6 +198,7 @@ const chartDefinitions = computed(() => [
     primaryMetric: 'runningPace',
     labels: buildDateLabels(runningZone2.value),
     pointTitles: buildPointTitles(runningZone2.value),
+    tooltipDetailLines: runningZone2.value.map((point) => point.tooltipDetails ?? []),
     datasets: [
       {
         label: t('zone2'),
@@ -145,6 +226,7 @@ const chartDefinitions = computed(() => [
     primaryMetric: 'cyclingSpeed',
     labels: buildDateLabels(cyclingZone2.value),
     pointTitles: buildPointTitles(cyclingZone2.value),
+    tooltipDetailLines: cyclingZone2.value.map((point) => point.tooltipDetails ?? []),
     datasets: [
       {
         label: t('zone2'),
@@ -161,57 +243,6 @@ const chartDefinitions = computed(() => [
         data: [24.8, 25.5, 26.1, 26.4],
         borderColor: '#166534',
         backgroundColor: 'rgba(22,101,52,0.2)'
-      }
-    ]
-  },
-  {
-    id: 'multisport-weekly-distance',
-    title: t('multisportWeeklyDistance'),
-    subtitle: t('multisportWeeklyDistanceSubtitle'),
-    infoText: t('multisportWeeklyDistanceInfo'),
-    primaryMetric: 'distanceKm',
-    labels: multisportWeeklyLabels.value,
-    pointTitles: multisportWeeklyPointTitles.value,
-    datasets: [
-      {
-        label: t('running'),
-        data: multisportWeeklyRunning.value.map((point) => point.value),
-        borderColor: '#166534',
-        backgroundColor: 'rgba(22,101,52,0.18)'
-      },
-      {
-        label: t('cycling'),
-        data: multisportWeeklyCycling.value.map((point) => point.value),
-        borderColor: '#c97c2a',
-        backgroundColor: 'rgba(201,124,42,0.18)'
-      },
-      {
-        label: t('swimming'),
-        data: multisportWeeklySwimming.value.map((point) => point.value),
-        borderColor: '#2f6fb3',
-        backgroundColor: 'rgba(47,111,179,0.18)'
-      }
-    ],
-    previewLabels,
-    previewPointTitles: previewPointTitles.multisportWeekly,
-    previewDatasets: [
-      {
-        label: t('running'),
-        data: [18, 26, 31, 24],
-        borderColor: '#166534',
-        backgroundColor: 'rgba(22,101,52,0.18)'
-      },
-      {
-        label: t('cycling'),
-        data: [62, 84, 96, 78],
-        borderColor: '#c97c2a',
-        backgroundColor: 'rgba(201,124,42,0.18)'
-      },
-      {
-        label: t('swimming'),
-        data: [2.4, 3.1, 2.7, 3.4],
-        borderColor: '#2f6fb3',
-        backgroundColor: 'rgba(47,111,179,0.18)'
       }
     ]
   },
@@ -308,6 +339,7 @@ const chartDefinitions = computed(() => [
     primaryMetric: 'relativeEffort',
     labels: buildDateLabels(runningRelativeEffort.value),
     pointTitles: buildPointTitles(runningRelativeEffort.value),
+    tooltipDetailLines: runningRelativeEffort.value.map((point) => point.tooltipDetails ?? []),
     datasets: [
       {
         label: t('intensityLabel'),
@@ -335,6 +367,7 @@ const chartDefinitions = computed(() => [
     primaryMetric: 'relativeEffort',
     labels: buildDateLabels(cyclingRelativeEffort.value),
     pointTitles: buildPointTitles(cyclingRelativeEffort.value),
+    tooltipDetailLines: cyclingRelativeEffort.value.map((point) => point.tooltipDetails ?? []),
     datasets: [
       {
         label: t('intensityLabel'),
@@ -360,7 +393,9 @@ const chartDefinitions = computed(() => [
     subtitle: t('runningZoneDistributionSubtitle'),
     infoText: t('runningZoneDistributionInfo'),
     primaryMetric: 'durationMinutes',
-    labels: buildSeriesLabels(runningZoneDistribution.value.zone2),
+    labels: buildDateLabels(runningZoneDistribution.value.zone2),
+    pointTitles: buildPointTitles(runningZoneDistribution.value.zone2),
+    tooltipDetailLines: runningZoneDistribution.value.zone2.map((point) => point.tooltipDetails ?? []),
     datasets: [
       { label: t('zone2'), data: runningZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
       { label: t('zone3'), data: runningZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
@@ -382,7 +417,9 @@ const chartDefinitions = computed(() => [
     subtitle: t('cyclingZoneDistributionSubtitle'),
     infoText: t('cyclingZoneDistributionInfo'),
     primaryMetric: 'durationMinutes',
-    labels: buildSeriesLabels(cyclingZoneDistribution.value.zone2),
+    labels: buildDateLabels(cyclingZoneDistribution.value.zone2),
+    pointTitles: buildPointTitles(cyclingZoneDistribution.value.zone2),
+    tooltipDetailLines: cyclingZoneDistribution.value.zone2.map((point) => point.tooltipDetails ?? []),
     datasets: [
       { label: t('zone2'), data: cyclingZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
       { label: t('zone3'), data: cyclingZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
@@ -446,7 +483,21 @@ const chartDefinitions = computed(() => [
   },
 ] satisfies DashboardChartDefinition[])
 
-const visibleCharts = computed(() => chartDefinitions.value.filter((chart) => selectedChartIds.value.includes(chart.id)))
+const visibleCharts = computed(() => {
+  return [...chartDefinitions.value]
+    .filter((chart) => selectedChartIds.value.includes(chart.id))
+    .sort((left, right) => {
+      if (left.id === FEATURED_CHART_ID) {
+        return -1
+      }
+
+      if (right.id === FEATURED_CHART_ID) {
+        return 1
+      }
+
+      return 0
+    })
+})
 
 const canLoadMoreRecent = computed(() => {
   const recentActivities = data.value?.recentActivities ?? []
@@ -491,10 +542,9 @@ async function applyChartSelection() {
     return
   }
 
-  const nextChartIds = draftChartIds.value.length ? [...draftChartIds.value] : [...defaultChartIds]
   const payload: SettingsUpdateRequest = {
     ...settings,
-    dashboardChartIds: nextChartIds,
+    dashboardChartIds: [...draftChartIds.value],
     stravaClientId: '',
     stravaClientSecret: ''
   }
@@ -531,103 +581,132 @@ function isDraftSelected(chartId: DashboardChartId) {
       <CounterCard :counter="data!.counters[1]" />
     </div>
 
-    <div class="grid-span-12 section-card card stack charts-section-header">
-      <div class="inline-actions">
-        <div>
-          <h2 class="section-title">{{ t('charts') }}</h2>
-          <p class="section-subtitle">{{ t('chartsSubtitle') }}</p>
-        </div>
-        <div class="inline-actions">
-          <button
-            v-for="range in ranges"
-            :key="range"
-            class="btn"
-            :class="selectedRange === range ? 'btn-primary' : 'btn-secondary'"
-            @click="selectedRange = range"
-          >
-            {{ range }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-for="chart in visibleCharts"
-      :key="chart.id"
-      class="grid-span-6"
-    >
-      <ChartCard
-        :title="chart.title"
-        :subtitle="chart.subtitle"
-        :info-text="chart.infoText"
-        :variant="chart.variant"
-        :primary-metric="chart.primaryMetric"
-        :secondary-metric="chart.secondaryMetric"
-        :invert-primary-axis="chart.invertPrimaryAxis"
-        :labels="chart.labels"
-        :point-titles="chart.pointTitles"
-        :datasets="chart.datasets"
-      />
-    </div>
-
-    <div class="grid-span-12">
-      <button class="chart-editor-trigger" type="button" @click="toggleChartEditor">
-        {{ isChartEditorOpen ? 'Close chart editor' : 'Add more Charts' }}
-      </button>
-    </div>
-
-    <div v-if="isChartEditorOpen" class="grid-span-12">
-      <section class="section-card card stack chart-editor-card">
-        <div>
-          <h3 class="section-title">Chart Editor</h3>
-          <p class="section-subtitle">Preview all available dashboard charts with mock data, choose the ones you want, then apply your selection.</p>
-        </div>
-
-        <div class="chart-editor-grid">
-          <div
-            v-for="chart in chartDefinitions"
-            :key="`editor-${chart.id}`"
-            class="chart-picker"
-            :class="{ 'chart-picker-selected': isDraftSelected(chart.id) }"
-            role="button"
-            tabindex="0"
-            @click="toggleDraftChart(chart.id)"
-            @keydown.enter.prevent="toggleDraftChart(chart.id)"
-            @keydown.space.prevent="toggleDraftChart(chart.id)"
-          >
-            <div class="chart-picker-badge">
-              <span class="pill">{{ isDraftSelected(chart.id) ? 'Selected' : 'Select chart' }}</span>
-            </div>
-            <ChartCard
-              :title="chart.title"
-              :subtitle="chart.subtitle"
-              :variant="chart.variant"
-              :primary-metric="chart.primaryMetric"
-              :secondary-metric="chart.secondaryMetric"
-              :invert-primary-axis="chart.invertPrimaryAxis"
-              :labels="chart.previewLabels"
-              :point-titles="chart.previewPointTitles"
-              :datasets="chart.previewDatasets"
-            />
+    <section class="grid-span-12 stack charts-region">
+      <div class="section-card card stack charts-section-header">
+        <div class="inline-actions charts-header-row">
+          <div class="charts-header-copy">
+            <h2 class="section-title">{{ t('charts') }}</h2>
+            <p class="section-subtitle">{{ t('chartsSubtitle') }}</p>
+          </div>
+          <div class="inline-actions charts-range-actions">
+            <button
+              v-for="range in ranges"
+              :key="range"
+              class="btn charts-range-btn"
+              :class="selectedRange === range ? 'btn-primary' : 'btn-secondary'"
+              @click="selectedRange = range"
+            >
+              {{ range }}
+            </button>
           </div>
         </div>
+      </div>
 
-        <div class="inline-actions chart-editor-actions">
-          <button class="btn btn-secondary" type="button" @click="addAllDraftCharts">
-            Add all
-          </button>
-          <button class="btn btn-secondary" type="button" @click="removeAllDraftCharts">
-            Remove all
-          </button>
-          <button class="btn btn-secondary" type="button" @click="toggleChartEditor">
-            Cancel
-          </button>
-          <button class="btn btn-primary" type="button" @click="applyChartSelection">
-            {{ isSavingChartSelection ? 'Applying...' : 'Apply' }}
+      <div class="dashboard-grid charts-content-grid">
+        <div
+          v-for="chart in visibleCharts"
+          :key="chart.id"
+          :class="chart.id === FEATURED_CHART_ID ? 'grid-span-12' : 'grid-span-6'"
+        >
+          <ChartCard
+            :title="chart.title"
+            :subtitle="chart.subtitle"
+            :info-text="chart.infoText"
+            :variant="chart.variant"
+            :tooltip-detail-lines="chart.tooltipDetailLines"
+            :tooltip-title-mode="chart.tooltipTitleMode"
+            :primary-metric="chart.primaryMetric"
+            :secondary-metric="chart.secondaryMetric"
+            :invert-primary-axis="chart.invertPrimaryAxis"
+            :labels="chart.labels"
+            :point-titles="chart.pointTitles"
+            :datasets="chart.datasets"
+          />
+        </div>
+
+        <div class="grid-span-12">
+          <button class="chart-editor-trigger" type="button" @click="toggleChartEditor">
+            {{ isChartEditorOpen ? 'Close chart editor' : 'Add more Charts' }}
           </button>
         </div>
-      </section>
-    </div>
+
+        <div v-if="isChartEditorOpen" class="grid-span-12">
+          <section class="section-card card stack chart-editor-card">
+            <div>
+              <h3 class="section-title">Chart Editor</h3>
+              <p class="section-subtitle">
+                Preview all available dashboard charts with mock data,<br>
+                choose the ones you want, then apply your selection.
+              </p>
+            </div>
+
+            <div class="inline-actions chart-editor-actions">
+              <button class="btn btn-secondary" type="button" @click="addAllDraftCharts">
+                Add all
+              </button>
+              <button class="btn btn-secondary" type="button" @click="removeAllDraftCharts">
+                Remove all
+              </button>
+              <button class="btn btn-secondary" type="button" @click="toggleChartEditor">
+                Cancel
+              </button>
+              <button class="btn btn-primary" type="button" @click="applyChartSelection">
+                {{ isSavingChartSelection ? 'Applying...' : 'Apply' }}
+              </button>
+            </div>
+
+            <div class="chart-editor-grid">
+              <div
+                v-for="chart in chartDefinitions"
+                :key="`editor-${chart.id}`"
+                class="chart-picker"
+                :class="{
+                  'chart-picker-selected': isDraftSelected(chart.id),
+                  'chart-picker-featured': chart.id === FEATURED_CHART_ID
+                }"
+                role="button"
+                tabindex="0"
+                @click="toggleDraftChart(chart.id)"
+                @keydown.enter.prevent="toggleDraftChart(chart.id)"
+                @keydown.space.prevent="toggleDraftChart(chart.id)"
+              >
+                <div class="chart-picker-badge">
+                  <span class="pill">{{ isDraftSelected(chart.id) ? 'Selected' : 'Select chart' }}</span>
+                </div>
+                <ChartCard
+                  :title="chart.title"
+                  :subtitle="chart.subtitle"
+                  :variant="chart.variant"
+                  :tooltip-detail-lines="chart.tooltipDetailLines"
+                  :tooltip-title-mode="chart.tooltipTitleMode"
+                  :primary-metric="chart.primaryMetric"
+                  :secondary-metric="chart.secondaryMetric"
+                  :invert-primary-axis="chart.invertPrimaryAxis"
+                  :labels="chart.previewLabels"
+                  :point-titles="chart.previewPointTitles"
+                  :datasets="chart.previewDatasets"
+                />
+              </div>
+            </div>
+
+            <div class="inline-actions chart-editor-actions">
+              <button class="btn btn-secondary" type="button" @click="addAllDraftCharts">
+                Add all
+              </button>
+              <button class="btn btn-secondary" type="button" @click="removeAllDraftCharts">
+                Remove all
+              </button>
+              <button class="btn btn-secondary" type="button" @click="toggleChartEditor">
+                Cancel
+              </button>
+              <button class="btn btn-primary" type="button" @click="applyChartSelection">
+                {{ isSavingChartSelection ? 'Applying...' : 'Apply' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
 
     <div class="grid-span-12 stack">
       <section class="section-card card stack">
@@ -653,15 +732,54 @@ function isDraftSelected(chartId: DashboardChartId) {
 </template>
 
 <style scoped>
+.charts-region {
+  position: relative;
+}
+
 .charts-section-header {
   position: sticky;
-  top: 1rem;
+  top: clamp(8.4rem, 12vw, 10.2rem);
   z-index: 14;
+  overflow: visible;
+  padding: 0.72rem 0.95rem;
   background:
     linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(255, 249, 242, 0.94));
   box-shadow:
-    0 20px 44px rgba(53, 38, 18, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    0 10px 20px rgba(53, 38, 18, 0.05),
+    0 0 0 1px rgba(64, 45, 22, 0.04);
+}
+
+.charts-content-grid {
+  align-content: start;
+}
+
+.charts-header-row {
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.charts-header-copy .section-title {
+  margin-bottom: 0.05rem;
+  font-size: clamp(1.05rem, 1.2vw, 1.3rem);
+  line-height: 1.05;
+}
+
+.charts-header-copy .section-subtitle {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.charts-range-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.charts-range-btn {
+  min-height: 2.2rem;
+  padding: 0.5rem 0.82rem;
+  font-size: 0.92rem;
 }
 
 .chart-editor-trigger {
@@ -706,6 +824,10 @@ function isDraftSelected(chartId: DashboardChartId) {
   outline: none;
 }
 
+.chart-picker-featured {
+  grid-column: 1 / -1;
+}
+
 .chart-picker:hover,
 .chart-picker:focus-visible {
   transform: translateY(-1px);
@@ -733,7 +855,17 @@ function isDraftSelected(chartId: DashboardChartId) {
 
 @media (max-width: 960px) {
   .charts-section-header {
-    top: 0.85rem;
+    top: clamp(9.1rem, 24vw, 11.2rem);
+    padding: 0.68rem 0.82rem;
+  }
+
+  .charts-header-row {
+    align-items: flex-start;
+  }
+
+  .charts-range-actions {
+    margin-left: 0;
+    justify-content: flex-start;
   }
 
   .chart-editor-grid {

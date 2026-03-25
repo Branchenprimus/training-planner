@@ -74,11 +74,14 @@ function normalizeSettings(value: LegacyAppSettings | null | undefined): AppSett
   const normalizedChartIds = Array.isArray(value?.dashboardChartIds)
     ? value.dashboardChartIds.filter((chartId): chartId is AppSettings['dashboardChartIds'][number] => VALID_DASHBOARD_CHART_IDS.includes(chartId as AppSettings['dashboardChartIds'][number]))
     : []
+  const hasStoredChartSelection = Array.isArray(value?.dashboardChartIds)
 
   return {
     ...DEFAULT_SETTINGS,
     ...rest,
-    dashboardChartIds: normalizedChartIds.length
+    dashboardChartIds: hasStoredChartSelection
+      ? normalizedChartIds
+      : normalizedChartIds.length
       ? normalizedChartIds
       : [...DEFAULT_SETTINGS.dashboardChartIds],
     runningZone2SessionsBeforeInterval: value?.runningZone2SessionsBeforeInterval ?? legacyZone2,

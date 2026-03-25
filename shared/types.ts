@@ -112,6 +112,13 @@ export interface RelativeEffortBreakdown {
   z4: number
   z5: number
   method: 'stream' | 'average'
+  zoneRanges?: {
+    z1: string
+    z2: string
+    z3: string
+    z4: string
+    z5: string
+  }
 }
 
 export interface ActivityListItem {
@@ -169,6 +176,7 @@ export interface ChartPoint {
   value: number
   secondaryValue?: number | null
   label: string
+  tooltipDetails?: string[]
 }
 
 export interface ChartSeriesResponse {

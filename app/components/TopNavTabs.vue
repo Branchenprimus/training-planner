@@ -16,7 +16,7 @@ const tabs = computed(() => [
 
 <template>
   <header class="top-nav-wrap">
-    <div class="top-nav card">
+    <div class="top-nav">
       <div class="top-nav-left">
         <a
           href="https://app-dashboard.darwin-labs.org"
@@ -73,8 +73,23 @@ const tabs = computed(() => [
   position: sticky;
   top: 0;
   z-index: 20;
+  overflow: visible;
   padding: 1rem 0 0;
-  backdrop-filter: blur(12px);
+}
+
+.top-nav-wrap::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -0.9rem;
+  transform: translateX(-50%);
+  width: min(36rem, calc(100vw - 10rem));
+  height: 1.35rem;
+  pointer-events: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 251, 245, 0.95), rgba(255, 249, 242, 0));
+  filter: blur(10px);
+  opacity: 0.95;
 }
 
 .top-nav {
@@ -85,6 +100,10 @@ const tabs = computed(() => [
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: flex-start;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: none;
 }
 
 .top-nav-left {
@@ -230,6 +249,11 @@ h1 {
 }
 
 @media (max-width: 960px) {
+  .top-nav-wrap::after {
+    width: min(24rem, calc(100vw - 4rem));
+    bottom: -0.75rem;
+  }
+
   .top-nav {
     display: flex;
     flex-wrap: wrap;
