@@ -241,6 +241,18 @@ h1 {
   border-radius: 999px;
   color: var(--text-muted);
   font-weight: 600;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.nav-link:hover {
+  background: rgba(95, 74, 44, 0.08);
+  color: var(--text);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(53, 38, 18, 0.08);
 }
 
 .nav-link.active {
@@ -347,9 +359,10 @@ h1 {
   }
 
   .nav-link {
-    padding: 0.45rem 0.4rem;
-    font-size: 0.78rem;
+    padding: 0.45rem 0.2rem;
+    font-size: 0.7rem;
     text-align: center;
+    letter-spacing: -0.01em;
   }
 }
 </style>

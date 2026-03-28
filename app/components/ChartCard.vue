@@ -13,6 +13,7 @@ import {
   type TooltipItem,
   Tooltip
 } from 'chart.js'
+import katex from 'katex'
 import { Bar, Line } from 'vue-chartjs'
 import { chartMetricAxisLabel, formatChartMetricValue, type ChartMetric } from '~/shared/format'
 
@@ -36,11 +37,13 @@ const props = defineProps<{
     data: number[]
     borderColor: string
     backgroundColor: string
+    borderWidth?: number
     yAxisID?: string
   }>
   primaryMetric: Exclude<ChartMetric, 'heartRate'>
   secondaryMetric?: ChartMetric
   invertPrimaryAxis?: boolean
+  stacked?: boolean
   variant?: 'line' | 'bar'
 }>()
 
@@ -52,7 +55,7 @@ const chartData = computed(() => ({
     tension: chartVariant.value === 'line' ? 0.25 : 0,
     fill: false,
     pointRadius: chartVariant.value === 'line' ? 3 : 0,
-    borderWidth: chartVariant.value === 'bar' ? 1 : 2,
+    borderWidth: dataset.borderWidth ?? (chartVariant.value === 'bar' ? 1 : 2),
     borderRadius: chartVariant.value === 'bar' ? 8 : 0,
     barPercentage: chartVariant.value === 'bar' ? 0.72 : undefined,
     categoryPercentage: chartVariant.value === 'bar' ? 0.72 : undefined
@@ -89,6 +92,46 @@ function wrapTooltipText(value: string, maxLineLength = MOBILE_TOOLTIP_LINE_LIMI
 
   return lines
 }
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function renderInfoTextToHtml(value: string) {
+  const inlinePattern = /\$([^$\n]+?)\$/g
+
+  return value
+    .split(/\n{2,}/)
+    .filter((paragraph) => paragraph.trim().length > 0)
+    .map((paragraph) => {
+      const trimmed = paragraph.trim()
+      const blockMatch = trimmed.match(/^\$\$[\s\S]+\$\$$/)
+      if (blockMatch) {
+        const expression = trimmed.slice(2, -2).trim()
+        return katex.renderToString(expression, {
+          displayMode: true,
+          throwOnError: false
+        })
+      }
+
+      const withInlineMath = escapeHtml(trimmed).replace(inlinePattern, (_fullMatch, expression: string) =>
+        katex.renderToString(expression.trim(), {
+          displayMode: false,
+          throwOnError: false
+        })
+      )
+
+      return `<p>${withInlineMath.replaceAll('\n', '<br>')}</p>`
+    })
+    .join('')
+}
+
+const renderedInfoText = computed(() => (props.infoText ? renderInfoTextToHtml(props.infoText) : ''))
 
 const baseChartOptions = computed(() => ({
   responsive: true,
@@ -141,6 +184,7 @@ const baseChartOptions = computed(() => ({
   scales: {
     y: {
       beginAtZero: chartVariant.value === 'bar',
+      stacked: chartVariant.value === 'bar' && Boolean(props.stacked),
       reverse: Boolean(props.invertPrimaryAxis),
       title: {
         display: true,
@@ -153,6 +197,7 @@ const baseChartOptions = computed(() => ({
     y1: {
       display: Boolean(props.secondaryMetric),
       beginAtZero: false,
+      stacked: chartVariant.value === 'bar' && Boolean(props.stacked),
       position: 'right' as const,
       title: props.secondaryMetric
         ? {
@@ -168,6 +213,9 @@ const baseChartOptions = computed(() => ({
       grid: {
         drawOnChartArea: false
       }
+    },
+    x: {
+      stacked: chartVariant.value === 'bar' && Boolean(props.stacked)
     }
   }
 }))
@@ -222,7 +270,7 @@ onBeforeUnmount(() => {
       >
         <span class="info-icon">i</span>
         <div class="info-popover" :class="{ 'info-popover-open': infoOpen }">
-          {{ infoText }}
+          <div v-html="renderedInfoText" />
         </div>
       </button>
     </div>
@@ -270,25 +318,21 @@ onBeforeUnmount(() => {
   position: absolute;
   top: calc(100% + 0.55rem);
   right: 0;
-  z-index: 10;
-  width: min(20rem, calc(100vw - 1.5rem));
-  padding: 0.8rem 0.9rem;
-  border-radius: 0.9rem;
-  background: #fffaf0;
-  border: 1px solid #dfcda9;
-  box-shadow: 0 14px 28px rgba(77, 59, 24, 0.14);
-  color: #4b3e2a;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  z-index: 20;
+  width: min(21rem, calc(100vw - 2rem));
+  padding: 0.9rem 1rem;
+  border-radius: 0.95rem;
+  background: rgba(29, 25, 18, 0.96);
+  color: #fffaf2;
+  box-shadow: 0 22px 44px rgba(15, 13, 9, 0.28);
+  text-align: left;
+  line-height: 1.45;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-4px);
-  transition: opacity 120ms ease, transform 120ms ease;
+  transform: translateY(-0.2rem);
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
-.info-trigger:hover .info-popover,
-.info-trigger:focus .info-popover,
-.info-trigger:focus-within .info-popover,
 .info-popover-open {
   opacity: 1;
   pointer-events: auto;
@@ -327,11 +371,22 @@ onBeforeUnmount(() => {
     transform: translate(-50%, -4px);
   }
 
-  .info-trigger:hover .info-popover,
-  .info-trigger:focus .info-popover,
-  .info-trigger:focus-within .info-popover,
   .info-popover-open {
     transform: translate(-50%, 0);
   }
+}
+
+:deep(.info-popover p) {
+  margin: 0;
+}
+
+:deep(.info-popover p + p) {
+  margin-top: 0.55rem;
+}
+
+:deep(.info-popover .katex-display) {
+  margin: 0.55rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 </style>

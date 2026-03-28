@@ -81,13 +81,7 @@ export function computeRelativeEffort(
   const maxHr = getSportMaxHr(settings, sport)
   const zones = getSportZoneSettings(settings, sport)
   if (!streams || !maxHr || !zones || sport === 'swimming') {
-    if (!maxHr || !zones || sport === 'swimming' || !averageHr || !durationSeconds || durationSeconds <= 0) {
-      return null
-    }
-
-    const hrPercent = (averageHr / maxHr) * 100
-    const weightedLoadSeconds = durationSeconds * getRelativeEffortZoneWeight(hrPercent, zones)
-    return Number((weightedLoadSeconds / RELATIVE_EFFORT_NORMALIZATION_DIVISOR).toFixed(2))
+    return null
   }
 
   const sampleCount = Math.min(streams.time.length, streams.heartrate.length)
@@ -116,12 +110,7 @@ export function computeRelativeEffort(
   }
 
   if (weightedLoadSeconds <= 0) {
-    if (!averageHr || !durationSeconds || durationSeconds <= 0) {
-      return null
-    }
-
-    const hrPercent = (averageHr / maxHr) * 100
-    weightedLoadSeconds = durationSeconds * getRelativeEffortZoneWeight(hrPercent, zones)
+    return null
   }
 
   return Number((weightedLoadSeconds / RELATIVE_EFFORT_NORMALIZATION_DIVISOR).toFixed(2))
@@ -187,27 +176,7 @@ export function computeRelativeEffortBreakdown(
     }
   }
 
-  if (!averageHr || !durationSeconds || durationSeconds <= 0) {
-    return null
-  }
-
-  const hrPercent = (averageHr / maxHr) * 100
-  const fallback: RelativeEffortBreakdown = {
-    z1: 0,
-    z2: 0,
-    z3: 0,
-    z4: 0,
-    z5: 0,
-    method: 'average'
-  }
-  const zoneWeight = getRelativeEffortZoneWeight(hrPercent, zones)
-  if (zoneWeight === RELATIVE_EFFORT_ZONE_WEIGHTS.z1) fallback.z1 = Math.round(durationSeconds)
-  else if (zoneWeight === RELATIVE_EFFORT_ZONE_WEIGHTS.z2) fallback.z2 = Math.round(durationSeconds)
-  else if (zoneWeight === RELATIVE_EFFORT_ZONE_WEIGHTS.z3) fallback.z3 = Math.round(durationSeconds)
-  else if (zoneWeight === RELATIVE_EFFORT_ZONE_WEIGHTS.z4) fallback.z4 = Math.round(durationSeconds)
-  else fallback.z5 = Math.round(durationSeconds)
-
-  return fallback
+  return null
 }
 
 export function getStoredRelativeEffortStreams(rawPayload: string | null): RelativeEffortStreams | null {

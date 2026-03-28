@@ -98,6 +98,41 @@ function bucketedActivities(activities: ActivityListItem[], granularity: BucketG
   return [...buckets.values()].sort((left, right) => left.date.localeCompare(right.date))
 }
 
+function recentMonthBuckets(count: number): ActivityBucket[] {
+  const now = new Date()
+  const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  const buckets: ActivityBucket[] = []
+
+  for (let index = count - 1; index >= 0; index -= 1) {
+    const bucketDate = new Date(Date.UTC(currentMonthStart.getUTCFullYear(), currentMonthStart.getUTCMonth() - index, 1))
+    const key = bucketDate.toISOString()
+
+    buckets.push({
+      key,
+      date: key,
+      label: bucketLabel(bucketDate, 'month'),
+      title: bucketTitle(bucketDate, 'month'),
+      activities: []
+    })
+  }
+
+  return buckets
+}
+
+function bucketActivitiesIntoExistingBuckets(activities: ActivityListItem[], buckets: ActivityBucket[], granularity: BucketGranularity): ActivityBucket[] {
+  const bucketMap = new Map(buckets.map((bucket) => [bucket.key, bucket]))
+
+  for (const activity of activities) {
+    const bucketDate = startOfBucket(activity.startDate, granularity)
+    const bucket = bucketMap.get(bucketDate.toISOString())
+    if (bucket) {
+      bucket.activities.push(activity)
+    }
+  }
+
+  return buckets
+}
+
 function buildBucketPoint(bucket: ActivityBucket, value: number): ChartPoint {
   return {
     date: bucket.date,
@@ -123,6 +158,9 @@ export default defineEventHandler((event): ChartSeriesResponse => {
   const payloads = getActivityRawPayloads(db, activities.map((activity) => activity.id))
   const granularity = getBucketGranularity(range)
   const buckets = bucketedActivities(activities, granularity)
+  const sessionClassificationBuckets = range === '90d'
+    ? bucketActivitiesIntoExistingBuckets(activities, recentMonthBuckets(3), 'month')
+    : buckets
   const relativeEffortBreakdowns = new Map(
     activities.map((activity) => [
       activity.id,
@@ -260,19 +298,19 @@ export default defineEventHandler((event): ChartSeriesResponse => {
       }))
     },
     sessionClassification: {
-      zone2: buckets.map((bucket) => buildBucketPoint(
+      zone2: sessionClassificationBuckets.map((bucket) => buildBucketPoint(
         bucket,
         bucket.activities.filter((activity) => activity.classification === 'zone2').length
       )),
-      zone3: buckets.map((bucket) => buildBucketPoint(
+      zone3: sessionClassificationBuckets.map((bucket) => buildBucketPoint(
         bucket,
         bucket.activities.filter((activity) => activity.classification === 'zone3').length
       )),
-      zone4: buckets.map((bucket) => buildBucketPoint(
+      zone4: sessionClassificationBuckets.map((bucket) => buildBucketPoint(
         bucket,
         bucket.activities.filter((activity) => activity.classification === 'zone4').length
       )),
-      interval: buckets.map((bucket) => buildBucketPoint(
+      interval: sessionClassificationBuckets.map((bucket) => buildBucketPoint(
         bucket,
         bucket.activities.filter((activity) => activity.classification === 'interval').length
       ))

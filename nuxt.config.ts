@@ -1,16 +1,16 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: {
-    enabled: true
+    enabled: false
   },
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css', 'katex/dist/katex.min.css'],
   app: {
     head: {
       title: 'Training Planner',
       meta: [
         {
           name: 'viewport',
-          content: 'width=device-width, initial-scale=1'
+          content: 'width=device-width, initial-scale=1, maximum-scale=1'
         },
         {
           name: 'description',

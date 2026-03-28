@@ -59,6 +59,7 @@ function loadMore() {
             :primary-metric="chart.primaryMetric"
             :secondary-metric="chart.secondaryMetric"
             :invert-primary-axis="chart.invertPrimaryAxis"
+            :stacked="chart.stacked"
             :labels="chart.labels"
             :point-titles="chart.pointTitles"
             :datasets="chart.datasets"

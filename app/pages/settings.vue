@@ -31,7 +31,7 @@ async function resetStrava() {
     await $fetch<DisconnectStravaResponse>('/api/auth/strava/reset', {
       method: 'POST'
     })
-    await refresh()
+    await refreshNuxtData()
   } catch (caughtError) {
     error.value = caughtError instanceof Error ? caughtError.message : 'Could not reset the Strava connection.'
   }

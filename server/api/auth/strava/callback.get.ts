@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     await connectStravaAccount(code, userEmail)
-    return sendRedirect(event, '/strava-setup?status=success')
+    return sendRedirect(event, '/')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to connect Strava.'
     return sendRedirect(event, `/strava-setup?status=error&message=${encodeURIComponent(message)}`)

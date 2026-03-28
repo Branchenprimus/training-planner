@@ -9,7 +9,7 @@ const { data } = await useFetch<Pick<SettingsResponse, 'settings'>>('/api/settin
 const { data: connectionStatus } = await useFetch<ConnectionStatusResponse>('/api/status/connection')
 
 const isConnected = computed(() => Boolean(connectionStatus.value?.syncStatus.connected))
-const shouldShowStravaBanner = computed(() => !isConnected.value)
+const shouldShowStravaBanner = computed(() => !isConnected.value && route.path !== '/strava-setup')
 const shouldShowStravaBannerButton = computed(() => !route.path.startsWith('/settings'))
 const canShowPageContent = computed(() =>
   isConnected.value || route.path === '/settings' || route.path === '/strava-setup' || route.path === '/auth/callback'

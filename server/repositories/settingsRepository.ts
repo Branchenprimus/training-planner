@@ -30,7 +30,9 @@ const VALID_DASHBOARD_CHART_IDS: AppSettings['dashboardChartIds'] = [
   'running-zone-distribution',
   'cycling-zone-distribution',
   'running-session-classification',
-  'cycling-session-classification'
+  'cycling-session-classification',
+  'running-elevation',
+  'cycling-elevation'
 ]
 
 function normalizeText(value: unknown): string {

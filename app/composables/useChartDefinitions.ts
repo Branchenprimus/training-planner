@@ -15,6 +15,7 @@ type ChartDataset = {
   data: number[]
   borderColor: string
   backgroundColor: string
+  borderWidth?: number
   yAxisID?: string
 }
 
@@ -27,6 +28,7 @@ export type DashboardChartDefinition = {
   primaryMetric: ChartMetric
   secondaryMetric?: 'heartRate' | 'durationMinutes'
   invertPrimaryAxis?: boolean
+  stacked?: boolean
   variant?: 'line' | 'bar'
   tooltipTitleMode?: 'default' | 'point-title-only'
   labels: string[]
@@ -62,10 +64,6 @@ function buildPointTitles(points: ChartSeriesResponse['zone2']) {
   return points.map((point) => point.label)
 }
 
-function buildSeriesLabels(points: { label: string }[]) {
-  return points.map((point) => point.label)
-}
-
 function buildWeekRangeTitle(locale: Ref<'en' | 'de'>, weekStartDate: string) {
   const start = new Date(weekStartDate)
   const end = new Date(weekStartDate)
@@ -84,6 +82,30 @@ function buildWeekRangeTitle(locale: Ref<'en' | 'de'>, weekStartDate: string) {
 
 function buildWeekRangeLabel(locale: Ref<'en' | 'de'>, weekStartDate: string) {
   return buildWeekRangeTitle(locale, weekStartDate).replace(/^Week:\s*/, '')
+}
+
+function buildBucketAxisLabels(
+  locale: Ref<'en' | 'de'>,
+  points: ChartSeriesResponse['zone2'],
+  range: ChartSeriesResponse['range'] | undefined
+) {
+  if (range === '90d' || range === 'all') {
+    return points.map((point) => point.label)
+  }
+
+  return points.map((point) => buildWeekRangeLabel(locale, point.date))
+}
+
+function buildBucketPointTitles(
+  locale: Ref<'en' | 'de'>,
+  points: ChartSeriesResponse['zone2'],
+  range: ChartSeriesResponse['range'] | undefined
+) {
+  if (range === '90d' || range === 'all') {
+    return points.map((point) => point.label)
+  }
+
+  return points.map((point) => buildWeekRangeTitle(locale, point.date))
 }
 
 export function useChartDefinitions(options: ChartDefinitionOptions) {
@@ -256,22 +278,24 @@ export function useChartDefinitions(options: ChartDefinitionOptions) {
       subtitle: t('runningZoneDistributionSubtitle'),
       infoText: t('runningZoneDistributionInfo'),
       primaryMetric: 'durationMinutes',
+      variant: 'bar',
+      stacked: true,
       labels: buildDateLabels(locale, runningZoneDistribution.value.zone2),
       pointTitles: buildPointTitles(runningZoneDistribution.value.zone2),
       tooltipDetailLines: runningZoneDistribution.value.zone2.map((point) => point.tooltipDetails ?? []),
       datasets: [
-        { label: t('zone2'), data: runningZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
-        { label: t('zone3'), data: runningZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
-        { label: t('zone4'), data: runningZoneDistribution.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
-        { label: t('intervalLabel'), data: runningZoneDistribution.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+        { label: t('zone2'), data: runningZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)', borderWidth: 1 },
+        { label: t('zone3'), data: runningZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)', borderWidth: 1 },
+        { label: t('zone4'), data: runningZoneDistribution.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)', borderWidth: 1 },
+        { label: t('intervalLabel'), data: runningZoneDistribution.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)', borderWidth: 1 }
       ],
       previewLabels,
       previewPointTitles: previewPointTitles.buckets,
       previewDatasets: [
-        { label: t('zone2'), data: [84, 96, 102, 88], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
-        { label: t('zone3'), data: [18, 22, 28, 20], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
-        { label: t('zone4'), data: [8, 0, 14, 10], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
-        { label: t('intervalLabel'), data: [0, 12, 8, 0], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+        { label: t('zone2'), data: [84, 96, 102, 88], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)', borderWidth: 1 },
+        { label: t('zone3'), data: [18, 22, 28, 20], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)', borderWidth: 1 },
+        { label: t('zone4'), data: [8, 0, 14, 10], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)', borderWidth: 1 },
+        { label: t('intervalLabel'), data: [0, 12, 8, 0], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)', borderWidth: 1 }
       ]
     },
     {
@@ -281,22 +305,24 @@ export function useChartDefinitions(options: ChartDefinitionOptions) {
       subtitle: t('cyclingZoneDistributionSubtitle'),
       infoText: t('cyclingZoneDistributionInfo'),
       primaryMetric: 'durationMinutes',
+      variant: 'bar',
+      stacked: true,
       labels: buildDateLabels(locale, cyclingZoneDistribution.value.zone2),
       pointTitles: buildPointTitles(cyclingZoneDistribution.value.zone2),
       tooltipDetailLines: cyclingZoneDistribution.value.zone2.map((point) => point.tooltipDetails ?? []),
       datasets: [
-        { label: t('zone2'), data: cyclingZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
-        { label: t('zone3'), data: cyclingZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
-        { label: t('zone4'), data: cyclingZoneDistribution.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
-        { label: t('intervalLabel'), data: cyclingZoneDistribution.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+        { label: t('zone2'), data: cyclingZoneDistribution.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)', borderWidth: 1 },
+        { label: t('zone3'), data: cyclingZoneDistribution.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)', borderWidth: 1 },
+        { label: t('zone4'), data: cyclingZoneDistribution.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)', borderWidth: 1 },
+        { label: t('intervalLabel'), data: cyclingZoneDistribution.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)', borderWidth: 1 }
       ],
       previewLabels,
       previewPointTitles: previewPointTitles.buckets,
       previewDatasets: [
-        { label: t('zone2'), data: [110, 124, 138, 132], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.18)' },
-        { label: t('zone3'), data: [24, 36, 28, 22], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.18)' },
-        { label: t('zone4'), data: [0, 18, 20, 14], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.18)' },
-        { label: t('intervalLabel'), data: [0, 10, 16, 8], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.18)' }
+        { label: t('zone2'), data: [110, 124, 138, 132], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)', borderWidth: 1 },
+        { label: t('zone3'), data: [24, 36, 28, 22], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)', borderWidth: 1 },
+        { label: t('zone4'), data: [0, 18, 20, 14], borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)', borderWidth: 1 },
+        { label: t('intervalLabel'), data: [0, 10, 16, 8], borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)', borderWidth: 1 }
       ]
     },
     {
@@ -307,15 +333,17 @@ export function useChartDefinitions(options: ChartDefinitionOptions) {
       infoText: t('runningSessionsByClassificationInfo'),
       primaryMetric: 'sessionCount',
       variant: 'bar',
-      labels: buildSeriesLabels(runningSessionClassification.value.zone2),
+      tooltipTitleMode: 'point-title-only',
+      labels: buildBucketAxisLabels(locale, runningSessionClassification.value.zone2, runningCharts.value?.range),
+      pointTitles: buildBucketPointTitles(locale, runningSessionClassification.value.zone2, runningCharts.value?.range),
       datasets: [
         { label: t('zone2'), data: runningSessionClassification.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
         { label: t('zone3'), data: runningSessionClassification.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
         { label: t('zone4'), data: runningSessionClassification.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)' },
         { label: t('intervalLabel'), data: runningSessionClassification.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)' }
       ],
-      previewLabels,
-      previewPointTitles: previewPointTitles.buckets,
+      previewLabels: ['Mar 2 - Mar 8', 'Mar 9 - Mar 15', 'Mar 16 - Mar 22', 'Mar 23 - Mar 29'],
+      previewPointTitles: ['Week: Mar 2 - Mar 8', 'Week: Mar 9 - Mar 15', 'Week: Mar 16 - Mar 22', 'Week: Mar 23 - Mar 29'],
       previewDatasets: [
         { label: t('zone2'), data: [2, 3, 2, 2], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
         { label: t('zone3'), data: [1, 0, 1, 1], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
@@ -331,15 +359,17 @@ export function useChartDefinitions(options: ChartDefinitionOptions) {
       infoText: t('cyclingSessionsByClassificationInfo'),
       primaryMetric: 'sessionCount',
       variant: 'bar',
-      labels: buildSeriesLabels(cyclingSessionClassification.value.zone2),
+      tooltipTitleMode: 'point-title-only',
+      labels: buildBucketAxisLabels(locale, cyclingSessionClassification.value.zone2, cyclingCharts.value?.range),
+      pointTitles: buildBucketPointTitles(locale, cyclingSessionClassification.value.zone2, cyclingCharts.value?.range),
       datasets: [
         { label: t('zone2'), data: cyclingSessionClassification.value.zone2.map((point) => point.value), borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
         { label: t('zone3'), data: cyclingSessionClassification.value.zone3.map((point) => point.value), borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },
         { label: t('zone4'), data: cyclingSessionClassification.value.zone4.map((point) => point.value), borderColor: '#9a551f', backgroundColor: 'rgba(154,85,31,0.78)' },
         { label: t('intervalLabel'), data: cyclingSessionClassification.value.interval.map((point) => point.value), borderColor: '#8b2f24', backgroundColor: 'rgba(139,47,36,0.78)' }
       ],
-      previewLabels,
-      previewPointTitles: previewPointTitles.buckets,
+      previewLabels: ['Mar 2 - Mar 8', 'Mar 9 - Mar 15', 'Mar 16 - Mar 22', 'Mar 23 - Mar 29'],
+      previewPointTitles: ['Week: Mar 2 - Mar 8', 'Week: Mar 9 - Mar 15', 'Week: Mar 16 - Mar 22', 'Week: Mar 23 - Mar 29'],
       previewDatasets: [
         { label: t('zone2'), data: [2, 2, 3, 2], borderColor: '#166534', backgroundColor: 'rgba(22,101,52,0.78)' },
         { label: t('zone3'), data: [1, 1, 0, 1], borderColor: '#8a6a18', backgroundColor: 'rgba(138,106,24,0.78)' },

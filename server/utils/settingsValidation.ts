@@ -18,7 +18,9 @@ export const appSettingsSchema = z.object({
     'running-zone-distribution',
     'cycling-zone-distribution',
     'running-session-classification',
-    'cycling-session-classification'
+    'cycling-session-classification',
+    'running-elevation',
+    'cycling-elevation'
   ])),
   syncIntervalMinutes: z.number().int().min(5).max(1440),
   runningMaxHr: z.number().int().min(100).max(240),

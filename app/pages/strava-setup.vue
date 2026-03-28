@@ -32,8 +32,7 @@ const callbackDomainValue = computed(() => data.value?.stravaApp.callbackDomain 
 watchEffect(() => {
   const status = route.query.status
   if (status === 'success') {
-    step.value = 'success'
-    wizardError.value = null
+    void navigateTo('/')
     return
   }
 
@@ -45,7 +44,7 @@ watchEffect(() => {
   }
 
   if (data.value?.connectionStatus.syncStatus.connected) {
-    step.value = 'success'
+    void navigateTo('/')
   }
 })
 
@@ -205,21 +204,6 @@ async function copyValue(field: 'website' | 'callbackDomain', value: string) {
             <button class="btn btn-primary" type="button" :disabled="isSubmitting || !form.clientId || !form.clientSecret" @click="finishSetup">
               {{ isSubmitting ? t('wizard.finishPending') : t('wizard.finish') }}
             </button>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="step === 'success'">
-        <div class="wizard-panel stack">
-          <div>
-            <p class="wizard-step success-step">03</p>
-            <h3 class="section-title">{{ t('wizard.step3Title') }}</h3>
-            <p class="section-subtitle">{{ t('wizard.step3Copy') }}</p>
-          </div>
-          <div class="inline-actions">
-            <NuxtLink class="btn btn-secondary" to="/settings">{{ t('wizard.cancel') }}</NuxtLink>
-            <NuxtLink class="btn btn-primary" to="/">Go to dashboard</NuxtLink>
-            <NuxtLink class="btn btn-secondary" to="/settings">Open settings</NuxtLink>
           </div>
         </div>
       </template>

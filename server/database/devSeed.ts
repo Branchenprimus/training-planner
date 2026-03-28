@@ -348,7 +348,7 @@ function buildMockActivities(): MockActivitySeed[] {
 }
 
 function shouldSeedMockStrava(userEmail: string): boolean {
-  return process.env.NODE_ENV === 'development' && userEmail.trim().toLowerCase() === 'local@localhost'
+  return userEmail.trim().toLowerCase() === 'local@localhost'
 }
 
 export function isDevelopmentMockStravaUser(userEmail: string): boolean {

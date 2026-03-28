@@ -12,6 +12,8 @@ export type DashboardChartId =
   | 'cycling-zone-distribution'
   | 'running-session-classification'
   | 'cycling-session-classification'
+  | 'running-elevation'
+  | 'cycling-elevation'
 
 export type ActivityClassification = 'zone2' | 'zone3' | 'zone4' | 'interval' | 'unclassified'
 
