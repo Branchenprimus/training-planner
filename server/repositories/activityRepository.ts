@@ -21,12 +21,31 @@ export interface UpsertActivityInput {
 
 export interface UpsertAnalysisInput extends ActivityAnalysisRecord {}
 
+function parseDataOrigin(rawPayload: unknown): string | null {
+  if (typeof rawPayload !== 'string' || !rawPayload.trim()) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(rawPayload) as {
+      activity?: {
+        device_name?: unknown
+      }
+    }
+    const deviceName = parsed.activity?.device_name
+    return typeof deviceName === 'string' && deviceName.trim() ? deviceName.trim() : null
+  } catch {
+    return null
+  }
+}
+
 function mapActivityRow(row: Record<string, unknown>): ActivityListItem {
   return {
     id: Number(row.id),
     sourceActivityId: Number(row.source_activity_id),
     sport: row.sport as SportType,
     sourceType: String(row.source_type),
+    dataOrigin: parseDataOrigin(row.raw_payload),
     name: String(row.name),
     startDate: String(row.start_date),
     durationSeconds: Number(row.duration_seconds),

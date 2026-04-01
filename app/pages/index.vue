@@ -138,6 +138,15 @@ async function applyChartSelection() {
 function isDraftSelected(chartId: DashboardChartId) {
   return draftChartIds.value.includes(chartId)
 }
+
+function scrollToActivities() {
+  const el = document.getElementById('recent-activities')
+  if (el) {
+    const yOffset = -90 // Offset to prevent sticky headers from hiding the title
+    const y = el.getBoundingClientRect().top + window.scrollY + yOffset
+    window.scrollTo({ top: y, behavior: 'smooth' })
+  }
+}
 </script>
 
 <template>
@@ -159,6 +168,9 @@ function isDraftSelected(chartId: DashboardChartId) {
             <p class="section-subtitle">{{ t('chartsSubtitle') }}</p>
           </div>
           <div class="inline-actions charts-range-actions">
+            <button class="jump-to-activities-btn" type="button" @click="scrollToActivities">
+              Jump to activities ↓
+            </button>
             <button
               v-for="range in ranges"
               :key="range"
@@ -189,6 +201,7 @@ function isDraftSelected(chartId: DashboardChartId) {
             :secondary-metric="chart.secondaryMetric"
             :invert-primary-axis="chart.invertPrimaryAxis"
             :stacked="chart.stacked"
+            :featured="chart.id === FEATURED_CHART_ID"
             :labels="chart.labels"
             :point-titles="chart.pointTitles"
             :datasets="chart.datasets"
@@ -280,7 +293,7 @@ function isDraftSelected(chartId: DashboardChartId) {
       </div>
     </section>
 
-    <div class="grid-span-12 stack">
+    <div id="recent-activities" class="grid-span-12 stack">
       <section class="section-card card stack">
         <div>
           <h2 class="section-title">{{ t('recentActivities') }}</h2>
@@ -352,6 +365,28 @@ function isDraftSelected(chartId: DashboardChartId) {
   min-height: 2.2rem;
   padding: 0.5rem 0.82rem;
   font-size: 0.92rem;
+}
+
+.jump-to-activities-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.8rem;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #654e2f;
+  background: transparent;
+  border: 1px solid rgba(101, 78, 47, 0.25);
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jump-to-activities-btn:hover {
+  background: rgba(101, 78, 47, 0.05);
+  border-color: rgba(101, 78, 47, 0.45);
 }
 
 .chart-editor-trigger {

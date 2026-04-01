@@ -41,7 +41,9 @@ const zoneBreakdownChart = computed(() => {
   <article class="activity-tile card" :class="zoneClass">
     <div class="activity-head">
       <div>
-        <p class="activity-sport">{{ translateSport(activity.sport) }}</p>
+        <p class="activity-sport">
+          {{ translateSport(activity.sport) }}<template v-if="activity.dataOrigin"> | {{ activity.dataOrigin }}</template>
+        </p>
         <h3>{{ activity.name }}</h3>
         <p v-if="activity.description" class="activity-description">{{ activity.description }}</p>
         <p class="muted">{{ formatLocalizedDate(activity.startDate, locale) }}</p>
@@ -141,6 +143,7 @@ const zoneBreakdownChart = computed(() => {
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
+  padding-top: 1.7rem;
 }
 
 .activity-sport {

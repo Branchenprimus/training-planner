@@ -75,6 +75,7 @@ export interface ActivityRecord {
   id: number
   sourceActivityId: number
   sourceType: string
+  dataOrigin?: string | null
   sport: SportType
   name: string
   description?: string | null
@@ -128,6 +129,7 @@ export interface ActivityListItem {
   sourceActivityId: number
   sport: SportType
   sourceType: string
+  dataOrigin?: string | null
   name: string
   description?: string | null
   startDate: string

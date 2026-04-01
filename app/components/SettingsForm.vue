@@ -8,6 +8,7 @@ const props = defineProps<{
   value: AppSettings
   stravaApp: SettingsResponse['stravaApp']
   connectionStatus: SettingsResponse['connectionStatus']
+  isManualSyncing?: boolean
   error?: string | null
 }>()
 
@@ -180,6 +181,7 @@ onBeforeUnmount(() => {
 const canStartStravaConnection = computed(() => props.stravaApp.hasConfiguredCredentials)
 
 const syncStatus = computed(() => props.connectionStatus.syncStatus)
+const isSyncing = computed(() => Boolean(props.isManualSyncing || syncStatus.value.isSyncing))
 const ratioLockLabel = computed(() => t(ratiosLocked.value ? 'settings.ratioUnlock' : 'settings.ratioLock'))
 
 watch(
@@ -477,6 +479,10 @@ function toggleRatioLock() {
           </div>
 
           <p class="muted">{{ syncStatus.lastSyncMessage ?? t('settings.waitingForFirstSync') }}</p>
+          <p v-if="isSyncing" class="sync-feedback" aria-live="polite">
+            <span class="sync-feedback-dot" aria-hidden="true" />
+            {{ t('settings.syncingHint') }}
+          </p>
 
         </div>
 
@@ -484,10 +490,10 @@ function toggleRatioLock() {
           <button
             class="btn btn-primary"
             type="button"
-            :disabled="syncStatus.isSyncing || !syncStatus.connected"
+            :disabled="isSyncing || !syncStatus.connected"
             @click="emit('sync')"
           >
-            {{ syncStatus.isSyncing ? t('settings.syncingNow') : t('settings.manualPullButton') }}
+            {{ isSyncing ? t('settings.syncingNow') : t('settings.manualPullButton') }}
           </button>
           <button class="btn btn-secondary btn-danger-soft" type="button" @click="emit('resetStrava')">
             {{ t('settings.resetStrava') }}
@@ -605,6 +611,24 @@ function toggleRatioLock() {
   color: var(--brand-strong);
 }
 
+.sync-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: #245233;
+  font-weight: 600;
+}
+
+.sync-feedback-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 0 rgba(36, 82, 51, 0.28);
+  animation: sync-pulse 1.3s ease-out infinite;
+}
+
 .manual-pull-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -683,6 +707,23 @@ function toggleRatioLock() {
 .email-value {
   font-size: 0.95rem;
   overflow-wrap: anywhere;
+}
+
+@keyframes sync-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(36, 82, 51, 0.28);
+  }
+
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 0.5rem rgba(36, 82, 51, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(36, 82, 51, 0);
+  }
 }
 
 @media (max-width: 900px) {

@@ -44,6 +44,7 @@ const props = defineProps<{
   secondaryMetric?: ChartMetric
   invertPrimaryAxis?: boolean
   stacked?: boolean
+  featured?: boolean
   variant?: 'line' | 'bar'
 }>()
 
@@ -257,7 +258,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section ref="rootRef" class="section-card card chart-card">
+  <section ref="rootRef" class="section-card card chart-card" :class="{ 'chart-card-featured': featured }">
     <div class="chart-header">
       <h3 class="section-title">{{ title }}</h3>
       <button
@@ -351,6 +352,15 @@ onBeforeUnmount(() => {
   position: relative;
   height: 280px;
   margin-top: 1rem;
+}
+
+.chart-card-featured {
+  min-height: 445px;
+  grid-template-rows: auto minmax(4.8rem, 4.8rem) 1fr;
+}
+
+.chart-card-featured .chart-frame {
+  height: 340px;
 }
 
 @media (max-width: 640px) {

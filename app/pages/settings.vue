@@ -4,6 +4,7 @@ import type { DisconnectStravaResponse, SettingsResponse, SettingsUpdateRequest,
 const { setLocale, t } = useI18n()
 const { data, pending, refresh } = await useFetch<SettingsResponse>('/api/settings')
 const error = ref<string | null>(null)
+const isManualSyncing = ref(false)
 let latestSaveRequest = 0
 
 async function saveSettings(nextValue: SettingsUpdateRequest) {
@@ -39,6 +40,7 @@ async function resetStrava() {
 
 async function syncNow() {
   error.value = null
+  isManualSyncing.value = true
 
   try {
     await $fetch<SyncNowResponse>('/api/sync', {
@@ -47,6 +49,8 @@ async function syncNow() {
     await refresh()
   } catch (caughtError) {
     error.value = caughtError instanceof Error ? caughtError.message : 'Could not start the Strava sync.'
+  } finally {
+    isManualSyncing.value = false
   }
 }
 
@@ -122,6 +126,7 @@ function onLanguageChange(event: Event) {
     :value="data.settings"
     :strava-app="data.stravaApp"
     :connection-status="data.connectionStatus"
+    :is-manual-syncing="isManualSyncing"
     :error="error"
     @save="saveSettings"
     @reset-strava="resetStrava"

@@ -14,6 +14,7 @@ interface MockActivitySeed {
   sourceActivityId: number
   sport: SportType
   sourceType: string
+  dataOrigin?: string | null
   name: string
   description: string
   startDate: string
@@ -60,6 +61,7 @@ function buildMockActivities(): MockActivitySeed[] {
       sourceActivityId: 991001,
       sport: 'running',
       sourceType: 'Run',
+      dataOrigin: 'Garmin Forerunner 265',
       name: 'Easy Riverside Run',
       description: 'Settled into an easy aerobic rhythm and kept the effort controlled all the way through.',
       startDate: makeDate(2, 6, 30),
@@ -76,6 +78,7 @@ function buildMockActivities(): MockActivitySeed[] {
       sourceActivityId: 991002,
       sport: 'cycling',
       sourceType: 'Ride',
+      dataOrigin: 'Wahoo ELEMNT ROAM',
       name: 'Morning Endurance Ride',
       description: 'Mostly steady Zone 2 with a few short rises on the back half of the loop.',
       startDate: makeDate(4, 7, 10),
@@ -92,6 +95,7 @@ function buildMockActivities(): MockActivitySeed[] {
       sourceActivityId: 991003,
       sport: 'running',
       sourceType: 'Run',
+      dataOrigin: 'Garmin Forerunner 265',
       name: 'Track Intervals',
       description: '6 x 800m on the track with jog recoveries, focused on relaxed form at high effort.',
       startDate: makeDate(6, 17, 40),
@@ -108,6 +112,7 @@ function buildMockActivities(): MockActivitySeed[] {
       sourceActivityId: 991004,
       sport: 'swimming',
       sourceType: 'Swim',
+      dataOrigin: 'Garmin Swim 2',
       name: 'Pool Technique Session',
       description: 'Technique-focused session with drills, pull buoy work, and smooth aerobic swimming.',
       startDate: makeDate(8, 18, 15),
@@ -406,6 +411,7 @@ export function seedMockStravaDataForDevelopment(db: Database.Database, userEmai
           id: activity.sourceActivityId,
           type: activity.sourceType,
           sport_type: activity.sourceType,
+          device_name: activity.dataOrigin,
           name: activity.name,
           description: activity.description,
           start_date: activity.startDate,
