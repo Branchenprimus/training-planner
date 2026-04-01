@@ -275,7 +275,6 @@ onBeforeUnmount(() => {
         </div>
       </button>
     </div>
-    <p class="section-subtitle">{{ subtitle }}</p>
     <div class="chart-frame">
       <Bar v-if="chartVariant === 'bar'" ref="lineRef" :data="chartData" :options="barChartOptions" />
       <Line v-else ref="lineRef" :data="chartData" :options="lineChartOptions" />
@@ -285,9 +284,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .chart-card {
-  min-height: 385px;
+  min-height: 310px;
   display: grid;
-  grid-template-rows: auto minmax(4.8rem, 4.8rem) 1fr;
+  grid-template-rows: auto 1fr;
   align-items: start;
 }
 
@@ -340,14 +339,6 @@ onBeforeUnmount(() => {
   transform: translateY(0);
 }
 
-.section-subtitle {
-  display: -webkit-box;
-  min-height: 4.8rem;
-  overflow: hidden;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-
 .chart-frame {
   position: relative;
   height: 280px;
@@ -355,8 +346,8 @@ onBeforeUnmount(() => {
 }
 
 .chart-card-featured {
-  min-height: 445px;
-  grid-template-rows: auto minmax(4.8rem, 4.8rem) 1fr;
+  min-height: 370px;
+  grid-template-rows: auto 1fr;
 }
 
 .chart-card-featured .chart-frame {
@@ -365,13 +356,8 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .chart-card {
-    min-height: 380px;
-    grid-template-rows: auto minmax(4.8rem, 4.8rem) 1fr;
-  }
-
-  .section-subtitle {
-    min-height: 4.8rem;
-    -webkit-line-clamp: 3;
+    min-height: 305px;
+    grid-template-rows: auto 1fr;
   }
 
   .info-popover {

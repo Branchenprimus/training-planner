@@ -142,9 +142,7 @@ function isDraftSelected(chartId: DashboardChartId) {
 function scrollToActivities() {
   const el = document.getElementById('recent-activities')
   if (el) {
-    const yOffset = -90 // Offset to prevent sticky headers from hiding the title
-    const y = el.getBoundingClientRect().top + window.scrollY + yOffset
-    window.scrollTo({ top: y, behavior: 'smooth' })
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
 </script>
@@ -293,7 +291,7 @@ function scrollToActivities() {
       </div>
     </section>
 
-    <div id="recent-activities" class="grid-span-12 stack">
+    <div id="recent-activities" class="grid-span-12 stack" style="scroll-margin-top: 125px;">
       <section class="section-card card stack">
         <div>
           <h2 class="section-title">{{ t('recentActivities') }}</h2>

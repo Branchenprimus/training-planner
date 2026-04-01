@@ -40,20 +40,23 @@ const zoneBreakdownChart = computed(() => {
 <template>
   <article class="activity-tile card" :class="zoneClass">
     <div class="activity-head">
-      <div>
-        <p class="activity-sport">
-          {{ translateSport(activity.sport) }}<template v-if="activity.dataOrigin"> | {{ activity.dataOrigin }}</template>
-        </p>
-        <h3>{{ activity.name }}</h3>
-        <p v-if="activity.description" class="activity-description">{{ activity.description }}</p>
-        <p class="muted">{{ formatLocalizedDate(activity.startDate, locale) }}</p>
+      <div class="activity-sport-row">
+        <p class="activity-sport">{{ translateSport(activity.sport) }}</p>
+        <span v-if="activity.dataOrigin" class="activity-origin-bubble">{{ activity.dataOrigin }}</span>
       </div>
-      <a :href="activity.stravaUrl" target="_blank" rel="noreferrer" class="btn btn-secondary">
-        {{ t('activity.openInStrava') }}
-      </a>
+      <h3 class="activity-title">{{ activity.name }}</h3>
+      <p v-if="activity.description" class="activity-description">{{ activity.description }}</p>
+      <p class="activity-date">{{ formatLocalizedDate(activity.startDate, locale) }}</p>
+      
+      <div class="activity-actions">
+        <a :href="activity.stravaUrl" target="_blank" rel="noreferrer" class="strava-btn">
+          {{ t('activity.openInStrava') }}
+        </a>
+      </div>
     </div>
+    
     <div class="metrics">
-      <div class="metric">
+      <div class="metric metric-transparent">
         <span class="metric-label">{{ activity.sport === 'cycling' ? t('activity.speed') : t('activity.pace') }}</span>
         <strong>{{ activity.formattedPerformance }}</strong>
       </div>
@@ -140,47 +143,111 @@ const zoneBreakdownChart = computed(() => {
 
 .activity-head {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  padding-top: 1.7rem;
+  flex-direction: column;
+  padding-top: 0.5rem;
+}
+
+.activity-sport-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .activity-sport {
-  margin: 0 0 0.35rem;
+  margin: 0;
   color: var(--accent);
   text-transform: capitalize;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
-h3 {
-  margin: 0 0 0.25rem;
+.activity-origin-bubble {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(214, 156, 74, 0.15);
+  border: 1px solid rgba(214, 156, 74, 0.3);
+  color: #925f20;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.activity-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
 }
 
 .activity-description {
   margin: 0 0 0.45rem;
-  color: var(--text-muted);
+  color: var(--text);
   line-height: 1.45;
 }
 
+.activity-date {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.activity-actions {
+  margin-top: 1rem;
+}
+
+.strava-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(64, 45, 22, 0.06);
+  border: 1px solid rgba(64, 45, 22, 0.1);
+  color: #402d16;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.strava-btn:hover {
+  background: rgba(64, 45, 22, 0.12);
+}
+
 .metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  align-items: stretch;
 }
 
 .metric {
   position: relative;
-  padding: 0.85rem;
-  border-radius: var(--radius-sm);
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  min-width: 85px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.metric-transparent {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0.75rem;
 }
 
 .metric-relative-effort {
   overflow: visible;
   z-index: 2;
+  min-width: 140px;
 }
 
 .metric-zone {
@@ -362,10 +429,6 @@ h3 {
 }
 
 @media (max-width: 700px) {
-  .activity-head {
-    flex-direction: column;
-  }
-
   .relative-effort-popover {
     left: 50%;
     right: auto;
