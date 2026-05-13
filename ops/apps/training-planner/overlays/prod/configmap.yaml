@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-planner-config
+  namespace: training-planner
+data:
+  APP_ORIGIN: https://sports.example.com
+  NUXT_STRAVA_REDIRECT_URI: https://sports.example.com/api/auth/strava/callback
+  NUXT_STRAVA_SCOPES: activity:read_all,profile:read_all
+  NUXT_SYNC_INTERVAL_MINUTES: "30"
+  NUXT_DEFAULT_USER_EMAIL: local@localhost
+  NUXT_SESSION_COOKIE_NAME: training_planner_state

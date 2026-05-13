@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: training-planner
+resources:
+  - ../../base
+  - configmap.yaml
+  - ingress.yaml
+  # Keep secret.yaml out of git, or replace it with Sealed Secrets/SOPS.
+  # - secret.yaml
+images:
+  - name: ghcr.io/YOUR_GITHUB_USER/training-planner
+    newName: ghcr.io/YOUR_GITHUB_USER/training-planner
+    newTag: latest

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: training-planner
+  namespace: training-planner
+  labels:
+    app.kubernetes.io/name: training-planner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: training-planner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: training-planner
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: app
+          image: ghcr.io/YOUR_GITHUB_USER/training-planner:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: training-planner-config
+            - secretRef:
+                name: training-planner-secret
+                optional: true
+          env:
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: "3000"
+            - name: NITRO_HOST
+              value: 0.0.0.0
+            - name: NITRO_PORT
+              value: "3000"
+            - name: NUXT_SQLITE_PATH
+              value: /data/training-planner.sqlite
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: training-planner-data

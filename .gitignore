@@ -6,6 +6,7 @@ node_modules
 dist
 coverage
 *.log
+ops/apps/**/secret.yaml
 
 
 issues/
